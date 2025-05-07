@@ -83,54 +83,22 @@ void setup() {
 
   // Routes de commande
   server.on("/avancer", []() {
-    digitalWrite(IN_1_D, LOW);
-    digitalWrite(IN_2_D, HIGH);
-    digitalWrite(IN_1_G, HIGH);
-    digitalWrite(IN_2_G, LOW);
-    delay(500); // Mouvement de 0.5s
-    digitalWrite(IN_1_D, LOW);
-    digitalWrite(IN_2_D, LOW);
-    digitalWrite(IN_1_G, LOW);
-    digitalWrite(IN_2_G, LOW);
+    avancer();
     server.sendHeader("Location", "/"); server.send(303);
   });
 
   server.on("/reculer", []() {
-    digitalWrite(IN_1_D, HIGH);
-    digitalWrite(IN_2_D, LOW);
-    digitalWrite(IN_1_G, LOW);
-    digitalWrite(IN_2_G, HIGH);
-    delay(500);
-    digitalWrite(IN_1_D, LOW);
-    digitalWrite(IN_2_D, LOW);
-    digitalWrite(IN_1_G, LOW);
-    digitalWrite(IN_2_G, LOW);
+    reculer();
     server.sendHeader("Location", "/"); server.send(303);
   });
 
   server.on("/gauche", []() {
-    digitalWrite(IN_1_D, LOW);
-    digitalWrite(IN_2_D, HIGH);
-    digitalWrite(IN_1_G, LOW);
-    digitalWrite(IN_2_G, HIGH);
-    delay(500);
-    digitalWrite(IN_1_D, LOW);
-    digitalWrite(IN_2_D, LOW);
-    digitalWrite(IN_1_G, LOW);
-    digitalWrite(IN_2_G, LOW);
+    gauche();
     server.sendHeader("Location", "/"); server.send(303);
   });
 
   server.on("/droite", []() {
-    digitalWrite(IN_1_D, HIGH);
-    digitalWrite(IN_2_D, LOW);
-    digitalWrite(IN_1_G, HIGH);
-    digitalWrite(IN_2_G, LOW);
-    delay(500);
-    digitalWrite(IN_1_D, LOW);
-    digitalWrite(IN_2_D, LOW);
-    digitalWrite(IN_1_G, LOW);
-    digitalWrite(IN_2_G, LOW);
+    droite();
     server.sendHeader("Location", "/"); server.send(303);
   });
 
@@ -140,4 +108,52 @@ void setup() {
 
 void loop() {
   server.handleClient();
+}
+
+void avancer() {
+  analogWrite(IN_1_D, 0);
+  analogWrite(IN_2_D, 128);
+  analogWrite(IN_1_G, 128);
+  analogWrite(IN_2_G, 0);
+  delay(500); // Mouvement de 0.5s
+  analogWrite(IN_1_D, 0);
+  analogWrite(IN_2_D, 0);
+  analogWrite(IN_1_G, 0);
+  analogWrite(IN_2_G, 0);
+}
+
+void reculer() {
+  analogWrite(IN_1_D, 128);
+  analogWrite(IN_2_D, 0);
+  analogWrite(IN_1_G, 0);
+  analogWrite(IN_2_G, 128);
+  delay(500);
+  analogWrite(IN_1_D, 0);
+  analogWrite(IN_2_D, 0);
+  analogWrite(IN_1_G, 0);
+  analogWrite(IN_2_G, 0);
+}
+
+void gauche() {
+  analogWrite(IN_1_D, 0);
+  analogWrite(IN_2_D, 128);
+  analogWrite(IN_1_G, 0);
+  analogWrite(IN_2_G, 128);
+  delay(500);
+  analogWrite(IN_1_D, 0);
+  analogWrite(IN_2_D, 0);
+  analogWrite(IN_1_G, 0);
+  analogWrite(IN_2_G, 0);
+}
+
+void droite() {
+  analogWrite(IN_1_D, 128);
+  analogWrite(IN_2_D, 0);
+  analogWrite(IN_1_G, 128);
+  analogWrite(IN_2_G, 0);
+  delay(500);
+  analogWrite(IN_1_D, 0);
+  analogWrite(IN_2_D, 0);
+  analogWrite(IN_1_G, 0);
+  analogWrite(IN_2_G, 0);
 }
