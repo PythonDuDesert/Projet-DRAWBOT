@@ -105,7 +105,9 @@
             transition: all 0.2s ease;
         }
 
-        
+        .buttons:hover {
+            background-color: #00aeba;
+        }
     </style>
 </head>
 <body>
@@ -133,23 +135,23 @@
 
                         <!-- Top row -->
                         <div class="empty-cell"></div>
-                        <button class="buttons">
+                        <button class="buttons" onmousedown="avancer()" onmouseup="stop()">
                             <span>Avancer</span>
                         </button>
                         <div class="empty-cell"></div>
                         
                         <!-- Middle row -->
-                        <button class="buttons">
+                        <button class="buttons" onmousedown="gauche()" onmouseup="stop()">
                             <span>Gauche</span>
                         </button>
-                        <div class="empty-cell"></div>
-                        <button class="buttons">
+                        <div class="empty-cell" ></div>
+                        <button class="buttons" onmousedown="droite()" onmouseup="stop()">
                             <span>Droite</span>
                         </button>
                         
                         <!-- Bottom row -->
                         <div class="empty-cell"></div>
-                        <button class="buttons">
+                        <button class="buttons" onmousedown="reculer()" onmouseup="stop()">
                             <span>Reculer</span>
                         </button>
                         <div class="empty-cell"></div>
