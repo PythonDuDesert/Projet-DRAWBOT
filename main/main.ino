@@ -47,41 +47,43 @@ void handleRoot() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DRAWBOT - InterfaceWeb</title>
     <style>
-      *{
-        margin: 0;
+      * {
+          margin: 0;
       }
-
-      /* Header styles */
       header {
-        background-color: #007179;
         color: white;
-        padding: 1.5rem;
-        text-align: center;
-      }
-      .header-content {
         display: flex;
         align-items: center;
-        justify-content: flex-start;
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1rem;
+        height: 150px;
+        background-color: rgba(0, 113, 121, 0.7);
       }
-      h1, h2, h3 {
-        font-size: 1.875rem;
+      .header {
+        padding: 10px;
+      }
+      #logo {
+        width: 40%;      
+      }
+      h1 {
+        font-size: 60px;
         text-align: center;
       }
-
-      /* Main content */
+      body {
+        background-image: url("background.PNG");
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-color: rgba(0, 0, 0, 0.3);
+        background-blend-mode: overlay;
+      }
       main {
         max-width: 1200px;
         margin: 2rem auto;
         padding: 0 1rem;
       }
       .card {
-        background-color: white;
+        background-color: rgba(255, 255, 255, 0.8);
         border-radius: 0.5rem;
         overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.7);
       }
       .card-header {
         background-color: #007179;
@@ -134,15 +136,8 @@ void handleRoot() {
         cursor: pointer;
         transition: all 0.2s ease;
       }
-
       .buttons:hover {
         background-color: #00aeba;
-      }
-
-      #img {
-        max-width: 180px;
-        height: auto;
-        margin-right: 1rem;
       }
     </style>
     <script>
@@ -156,10 +151,12 @@ void handleRoot() {
 
   <body>
     <header>
-      <div class="header-content">
-        <img src="Logo_ECE.PNG" id="img">
-        <h1>DRAWBOT</h1>
-      </div>
+        <div class="header">
+            <img src="Logo_ECE.PNG" id="logo">
+        </div>
+        <div>
+            <h1>DRAWBOT</h1>
+        </div>
     </header>
     <main>
         <div class="card">
