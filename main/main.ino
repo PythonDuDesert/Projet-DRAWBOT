@@ -1,11 +1,6 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-const char* ssid = "TrojanHorse";
-const char* password = "F18hornet";
-WebServer server(80);
-
-
 // User led
 #define LEDU1 25
 #define LEDU2 26
@@ -38,6 +33,23 @@ WebServer server(80);
 #define ADDR_IMU 0x6B
 #define ADDR_MAG 0x1E
 
+
+// Nombre de ticks des encodeurs (33 ticks = 1cm)
+volatile long nbr_ticks_gauche = 0, nbr_ticks_droite = 0;
+
+void IRAM_ATTR onTickGauche() {
+  nbr_ticks_gauche++;
+}
+
+void IRAM_ATTR onTickDroite() {
+  nbr_ticks_droite++;
+}
+
+
+// Pour le WiFi
+const char* ssid = "TrojanHorse";
+const char* password = "F18hornet";
+WebServer server(80);
 
 void handleRoot() {
   String html = R"rawliteral(
@@ -168,7 +180,7 @@ void handleRoot() {
                 <div class="section">
                     <h3 class="section-title">Contrôles de mouvement</h3>
                     <div class="movement-buttons">
-                         <!-- Top row -->
+                        <!-- Top row -->
                         <div class="empty-cell"></div>
                         <button class="buttons" onmousedown="avancer()" onmouseup="stop()">
                             <span>Avancer</span>
@@ -225,6 +237,7 @@ void handleRoot() {
   server.send(200, "text/html", html);
 }
 
+
 void setup() {
   Serial.begin(115200);
   WiFi.begin(ssid, password);
@@ -267,10 +280,22 @@ void setup() {
 
   server.begin();
   Serial.println("Serveur HTTP lancé.");
+
+  pinMode(ENC_G_CH_A, INPUT);
+  pinMode(ENC_D_CH_A, INPUT);
+  attachInterrupt(digitalPinToInterrupt(ENC_G_CH_A), onTickGauche, RISING);
+  attachInterrupt(digitalPinToInterrupt(ENC_D_CH_A), onTickDroite, RISING);
 }
 
 void loop() {
   server.handleClient();
+
+  static unsigned long lastPrint = 0;
+  if (millis() - lastPrint > 1000) {
+    Serial.print("Ticks gauche: ");
+    Serial.println(nbr_ticks_gauche);
+    lastPrint = millis();
+  }
 }
 
 void stop() {
