@@ -2,32 +2,31 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DRAWBOT - InterfaceWeb</title>
+    <title>DRAWBOT - Interface web</title>
     <style>
 
         * {
             margin: 0;
         }
-
         header {
-            color: white;
             display: flex;
             align-items: center;
+            justify-content: center;
             height: 150px;
             background-color: rgba(0, 113, 121, 0.7);
+            position: relative;
         }
-
-        .header {
-            padding: 10px;
-        }
-
         #logo {
-            width: 40%;      
+            width: 20%;
+            position: absolute;
+            left: 0;      
         }
-
+        .title-container {
+            text-align: center;
+        }
         h1 {
             font-size: 60px;
-            text-align: center;
+            color: white;
         }
 
         body {
@@ -65,9 +64,8 @@
         }
 
         .section-title {
-            font-size: 1.125rem;
-            font-weight: 500;
-            color: #1f2937;
+            font-size: 30px;
+            color: rgba(0, 113, 121, 0.8);
             margin-bottom: 1rem;
         }
 
@@ -112,10 +110,8 @@
 </head>
 <body>
     <header>
-        <div class="header">
-            <img src="Logo_ECE.PNG" id="logo">
-        </div>
-        <div>
+        <img src="Logo_ECE.PNG" id="logo">
+        <div class="title-container">
             <h1>DRAWBOT</h1>
         </div>
     </header>
