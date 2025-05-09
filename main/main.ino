@@ -70,11 +70,6 @@ void handleRoot() {
             background-color: rgba(0, 113, 121, 0.7);
             position: relative;
         }
-        #logo {
-            width: 20%;
-            position: absolute;
-            left: 0;      
-        }
         .title-container {
             text-align: center;
         }
@@ -180,12 +175,7 @@ void handleRoot() {
 
   <body>
     <header>
-        <div class="header">
-            <img src="Logo_ECE.PNG" id="logo">
-        </div>
-        <div>
-            <h1>DRAWBOT</h1>
-        </div>
+        <h1>DRAWBOT</h1>
     </header>
     <main>
         <div class="card">
