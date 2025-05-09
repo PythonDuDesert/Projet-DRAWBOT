@@ -59,98 +59,115 @@ void handleRoot() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DRAWBOT - InterfaceWeb</title>
     <style>
-      * {
-          margin: 0;
-      }
-      header {
-        color: white;
-        display: flex;
-        align-items: center;
-        height: 150px;
-        background-color: rgba(0, 113, 121, 0.7);
-      }
-      .header {
-        padding: 10px;
-      }
-      #logo {
-        width: 40%;      
-      }
-      h1 {
-        font-size: 60px;
-        text-align: center;
-      }
-      body {
-        background-image: url("background.PNG");
-        background-repeat: no-repeat;
-        background-size: cover;
-        background-color: rgba(0, 0, 0, 0.3);
-        background-blend-mode: overlay;
-      }
-      main {
-        max-width: 1200px;
-        margin: 2rem auto;
-        padding: 0 1rem;
-      }
-      .card {
-        background-color: rgba(255, 255, 255, 0.8);
-        border-radius: 0.5rem;
-        overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.7);
-      }
-      .card-header {
-        background-color: #007179;
-        color: white;
-        padding: 1rem;
-        border-bottom: 1px solid #e5e7eb;
-        font-size: 1.25rem;
-        font-weight: bold;
-      }
-      .card-body {
-        padding: 1.5rem;
-      }
-      .section-title {
-        font-size: 1.125rem;
-        font-weight: 500;
-        color: #1f2937;
-        margin-bottom: 1rem;
-      }
+        * {
+            margin: 0;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 150px;
+            background-color: rgba(0, 113, 121, 0.7);
+            position: relative;
+        }
+        #logo {
+            width: 20%;
+            position: absolute;
+            left: 0;      
+        }
+        .title-container {
+            text-align: center;
+        }
+        h1 {
+            font-size: 60px;
+            color: white;
+        }
 
-      /* Movement controls */
-      .movement-buttons {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-        max-width: 24rem;
-        margin: 0 auto;
-      }
+        body {
+            background-image: url("background.PNG");
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-color: rgba(0, 0, 0, 0.3);
+            background-blend-mode: overlay;
+        }
 
-      /* Sequence controls */
-      .sequence-buttons {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1rem;
-        grid-template-columns: repeat(3, 1fr);
-      }
+        main {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
 
-      /* Button styles */
-      .buttons {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 1.5rem 1rem;
-        background-color: #007179;
-        color: white;
-        border: none;
-        border-radius: 0.375rem;
-        font-size: 1rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-      .buttons:hover {
-        background-color: #00aeba;
-      }
+        .card {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.7);
+        }
+
+        .card-header {
+            background-color: #007179;
+            color: white;
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 30px;
+            color: rgba(0, 113, 121, 0.8);
+            margin-bottom: 1rem;
+        }
+
+        /* Movement controls */
+        .movement-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            max-width: 24rem;
+            margin: 0 auto;
+        }
+
+        /* Sequence controls */
+        .sequence-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        /* Button styles */
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+            background-color: #007179;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .buttons:hover {
+            background-color: #00aeba;
+        }
+
+        #button_stop {
+            background-color: #ec2424;
+        }
+
+        #button_stop:hover{
+            background-color: #be1d1d;
+        }
     </style>
     <script>
     function avancer() { fetch("/avancer"); }
@@ -175,11 +192,13 @@ void handleRoot() {
             <div class="card-header">
                 <h2>Contrôles DRAWBOT</h2>
             </div>
+
             <div class="card-body">
                 <!-- Movement Controls -->
                 <div class="section">
                     <h3 class="section-title">Contrôles de mouvement</h3>
                     <div class="movement-buttons">
+
                         <!-- Top row -->
                         <div class="empty-cell"></div>
                         <button class="buttons" onmousedown="avancer()" onmouseup="stop()">
@@ -191,7 +210,9 @@ void handleRoot() {
                         <button class="buttons" onmousedown="gauche()" onmouseup="stop()">
                             <span>Gauche</span>
                         </button>
-                        <div class="empty-cell" ></div>
+                        <button class="buttons" id="button_stop" onmousedown="stop()">
+                            <span>STOP</span>
+                        </button>
                         <button class="buttons" onmousedown="droite()" onmouseup="stop()">
                             <span>Droite</span>
                         </button>
@@ -202,6 +223,7 @@ void handleRoot() {
                             <span>Reculer</span>
                         </button>
                         <div class="empty-cell"></div>
+
                     </div>
                 </div>
                 
