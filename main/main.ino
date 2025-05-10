@@ -271,9 +271,22 @@ void setup() {
     pinMode(IN_1_G, OUTPUT);
     pinMode(IN_2_G, OUTPUT);
 
+    pinMode(ENC_G_CH_A, INPUT);
+    pinMode(ENC_D_CH_A, INPUT);
+    attachInterrupt(digitalPinToInterrupt(ENC_G_CH_A), onTickGauche, RISING);
+    attachInterrupt(digitalPinToInterrupt(ENC_D_CH_A), onTickDroite, RISING);
+
     // Activer les moteurs (mettre les broches EN à HIGH)
     digitalWrite(EN_D, HIGH);
     digitalWrite(EN_G, HIGH);
+
+    // Configure les broches PWM pour les moteurs
+    //ledcAttach(pin, fréquence, résolution)
+    //https://docs.espressif.com/projects/arduino-esp32/en/latest/migration_guides/2.x_to_3.0.html#ledc
+    ledcAttach(IN_1_D, 5000, 8);
+    ledcAttach(IN_2_D, 5000, 8);
+    ledcAttach(IN_1_G, 5000, 8);
+    ledcAttach(IN_2_G, 5000, 8);
 
     // Route principale (page HTML)
     server.on("/", handleRoot);
@@ -284,18 +297,6 @@ void setup() {
     server.on("/stop", stop);
     server.begin();
     Serial.println("Serveur HTTP lancé.");
-
-    pinMode(ENC_G_CH_A, INPUT);
-    pinMode(ENC_D_CH_A, INPUT);
-    attachInterrupt(digitalPinToInterrupt(ENC_G_CH_A), onTickGauche, RISING);
-    attachInterrupt(digitalPinToInterrupt(ENC_D_CH_A), onTickDroite, RISING);
-
-    // Configure les broches PWM pour les moteurs
-    //https://docs.espressif.com/projects/arduino-esp32/en/latest/migration_guides/2.x_to_3.0.html#ledc
-    ledcAttach(IN_1_D, 5000, 8);
-    ledcAttach(IN_2_D, 5000, 8);
-    ledcAttach(IN_1_G, 5000, 8);
-    ledcAttach(IN_2_G, 5000, 8);
 }
 
 void loop() {
@@ -311,44 +312,6 @@ void loop() {
     }
 
 }
-
-/*
-void stop() {
-    analogWrite(IN_1_D, 0);
-    analogWrite(IN_2_D, 0);
-    analogWrite(IN_1_G, 0);
-    analogWrite(IN_2_G, 0);
-}
-
-void avancer() {
-    analogWrite(IN_1_D, 0);
-    analogWrite(IN_2_D, 128);
-    analogWrite(IN_1_G, 128);
-    analogWrite(IN_2_G, 0);
-}
-
-void reculer() {
-    analogWrite(IN_1_D, 128);
-    analogWrite(IN_2_D, 0);
-    analogWrite(IN_1_G, 0);
-    analogWrite(IN_2_G, 128);
-}
-
-void gauche() {
-    analogWrite(IN_1_D, 0);
-    analogWrite(IN_2_D, 96);
-    analogWrite(IN_1_G, 0);
-    analogWrite(IN_2_G, 96);
-}
-
-void droite() {
-    analogWrite(IN_1_D, 96);
-    analogWrite(IN_2_D, 0);
-    analogWrite(IN_1_G, 96);
-    analogWrite(IN_2_G, 0);
-}
-*/
-
 
 void stop() {
     ledcWrite(IN_1_D, 0);
