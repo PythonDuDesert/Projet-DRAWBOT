@@ -49,7 +49,7 @@ double input_left, output_left, setpoint_left;
 double input_right, output_right, setpoint_right;
 
 // Coefficients PID
-const float kp = 2, ki = 3, kd = 3;
+const float kp = 1, ki = 1, kd = 1;
 double P = 0, I = 0, D = 0;
 bool in_sequence1 = false;
 
