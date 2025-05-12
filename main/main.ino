@@ -1,6 +1,5 @@
 #include <WiFi.h>
 #include <WebServer.h>
-#include <PID_v1.h>
 
 
 // User led
@@ -45,11 +44,9 @@ volatile long int error_left = target_ticks - nbr_ticks_left;
 volatile long int error_right = target_ticks - nbr_ticks_right;
 volatile long int last_error_left = target_ticks - nbr_ticks_left;
 volatile long int last_error_right = target_ticks - nbr_ticks_right;
-double input_left, output_left, setpoint_left;
-double input_right, output_right, setpoint_right;
 
 // Coefficients PID
-const float kp = 1, ki = 1, kd = 1;
+const float kp = 1, ki = 0.5, kd = 0.5;
 double P = 0, I = 0, D = 0;
 bool in_sequence1 = false;
 
@@ -359,17 +356,17 @@ void loop() {
 
   if (in_sequence1) {
     //https://projecthub.arduino.cc/anova9347/line-follower-robot-with-pid-controller-01813f
-    error_left = target_ticks - nbr_ticks_left;
-    error_right = target_ticks - nbr_ticks_right;
+    error_left = target_ticks-nbr_ticks_left;
+    error_right = target_ticks-nbr_ticks_right;
 
-    P = kp * error_left;
+    P = kp*error_left;
 
-    I = I + error_left;
+    I = I+error_left;
 
-    D = error_left - last_error_left;
+    D = error_left-last_error_left;
     last_error_left = error_left;
 
-    float PID_result = P * kp + I * ki + D * kd;
+    float PID_result = P*kp + I*ki + D*kd;
 
     short int speed_left = PID_result;
 
