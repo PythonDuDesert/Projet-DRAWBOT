@@ -39,11 +39,19 @@ volatile long int nbr_ticks_gauche = 0, nbr_ticks_droite = 0;
 volatile long int target_nbr_ticks_gauche = 0, target_nbr_ticks_droite = 0;
 
 void IRAM_ATTR onTickGauche() {
-    nbr_ticks_gauche++;
+    if (digitalRead(ENC_G_CH_B) == HIGH) {
+        nbr_ticks_left++;
+    } else {
+        nbr_ticks_left--;
+    }
 }
 
 void IRAM_ATTR onTickDroite() {
-    nbr_ticks_droite++;
+    if (digitalRead(ENC_D_CH_B) == HIGH) {
+        nbr_ticks_right++;
+    } else {
+        nbr_ticks_right--;
+    }
 }
 
 // Pour le WiFi
