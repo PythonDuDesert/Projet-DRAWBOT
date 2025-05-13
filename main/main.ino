@@ -52,7 +52,7 @@ Wheel wheel_right;
 unsigned short int target_distance = 20;
 
 // Coefficients PID
-float kp = 3, ki = 0.1, kd = 0.5;
+float kp = 3, ki = 0, kd = 0.5;
 double P = 0, I = 0, D = 0;
 bool in_sequence1 = false;
 
@@ -438,7 +438,7 @@ void loop() {
         Serial.print("Ticks droite : ");
         Serial.println(wheel_right.nbr_ticks);
 
-        float distance = (float)wheel_right.nbr_ticks/(float)conversion_number;
+        float distance = (float)((wheel_left.nbr_ticks+wheel_right.nbr_ticks)/2)/(float)conversion_number;
         Serial.print("Distance : ");
         Serial.println(distance);
 
@@ -460,12 +460,12 @@ void loop() {
         }
 
         // Condition d'arrêt si erreur négligeable
-        if (abs(wheel_left.error) < 10 && abs(wheel_right.error) < 10 && wheel_left.error==wheel_left.last_error && wheel_right.error==wheel_right.last_error) {
-            stop();
-            in_sequence1 = false;
-            Serial.println("Séquence 1 terminée!");
-            return;  // Stop PID
-        }
+        // if (abs(wheel_left.error) < 10 && abs(wheel_right.error) < 10 && wheel_left.error==wheel_left.last_error && wheel_right.error==wheel_right.last_error) {
+        //     stop();
+        //     in_sequence1 = false;
+        //     Serial.println("Séquence 1 terminée!");
+        //     return;  // Stop PID
+        // }
     }
 }
 
