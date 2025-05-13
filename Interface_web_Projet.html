@@ -2,12 +2,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DRAWBOT - Interface web</title>
+    <title>DRAWBOT - InterfaceWeb</title>
     <style>
-
         * {
             margin: 0;
+            font-family: arial, sans-serif;
         }
+
         header {
             display: flex;
             align-items: center;
@@ -16,23 +17,17 @@
             background-color: rgba(0, 113, 121, 0.7);
             position: relative;
         }
-        #logo {
-            width: 20%;
-            position: absolute;
-            left: 0;      
-        }
+
         .title-container {
             text-align: center;
         }
+
         h1 {
             font-size: 60px;
             color: white;
         }
 
         body {
-            background-image: url("background.PNG");
-            background-repeat: no-repeat;
-            background-size: cover;
             background-color: rgba(0, 0, 0, 0.3);
             background-blend-mode: overlay;
         }
@@ -70,7 +65,7 @@
         }
 
         /* Movement controls */
-        .movement-buttons {
+        #movement-buttons {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 1rem;
@@ -78,8 +73,27 @@
             margin: 0 auto;
         }
 
+        /* Paramètres */
+        #parameters {
+            margin: 1.5rem 0 2rem;
+            display: flex;
+        }
+
+        #coeff {
+            background-color: rgba(138, 138, 138, 0.3);
+            border: solid 3px black;
+            border-radius: 5px;
+            padding: 10px;
+            font-weight: bold;
+        }
+
+        input {
+            width : 3rem;
+            margin-right: 0.75rem;
+        }
+
         /* Sequence controls */
-        .sequence-buttons {
+        #sequence-buttons {
             display: grid;
             grid-template-columns: 1fr;
             gap: 1rem;
@@ -106,19 +120,60 @@
         .buttons:hover {
             background-color: #00aeba;
         }
+
+        #button_stop {
+            background-color: #ec2424;
+        }
+
+        #button_stop:hover {
+            background-color: #b61d1d;
+        }
+
+        #button_reset {
+            background-color: #8a8a8a;
+        }
+
+        #button_reset:hover {
+            background-color: #6a6a6a;
+        }
     </style>
+    <script>
+        function avancer() {
+            fetch("/avancer");
+        }
+        function reculer() {
+            fetch("/reculer");
+        }
+        function gauche() {
+            fetch("/gauche");
+        }
+        function droite() {
+            fetch("/droite");
+        }
+        function stop() {
+            fetch("/stop");
+        }
+        function reset_ticks() {
+            fetch("/reset_ticks");
+        }
+        function sequence_1() {
+            fetch("/sequence1");
+        }
+        function update_coeff() {
+            let kp = document.getElementById("coeff_kp").value;
+            let ki = document.getElementById("coeff_ki").value;
+            let kd = document.getElementById("coeff_kd").value;
+            fetch(`/update_coeff?coeff_kp=${kp}&coeff_ki=${ki}&coeff_kd=${kd}`);
+        }
+    </script>
 </head>
+
 <body>
     <header>
-        <img src="Logo_ECE.PNG" id="logo">
-        <div class="title-container">
-            <h1>DRAWBOT</h1>
-        </div>
+        <h1>DRAWBOT</h1>
     </header>
-
     <main>
         <div class="card">
-
             <div class="card-header">
                 <h2>Contrôles DRAWBOT</h2>
             </div>
@@ -127,7 +182,7 @@
                 <!-- Movement Controls -->
                 <div class="section">
                     <h3 class="section-title">Contrôles de mouvement</h3>
-                    <div class="movement-buttons">
+                    <div id="movement-buttons">
 
                         <!-- Top row -->
                         <div class="empty-cell"></div>
@@ -135,31 +190,43 @@
                             <span>Avancer</span>
                         </button>
                         <div class="empty-cell"></div>
-                        
+
                         <!-- Middle row -->
                         <button class="buttons" onmousedown="gauche()" onmouseup="stop()">
                             <span>Gauche</span>
                         </button>
-                        <div class="empty-cell" ></div>
+                        <button class="buttons" id="button_stop" onclick="stop()">
+                            <span>STOP</span>
+                        </button>
                         <button class="buttons" onmousedown="droite()" onmouseup="stop()">
                             <span>Droite</span>
                         </button>
-                        
+
                         <!-- Bottom row -->
-                        <div class="empty-cell"></div>
+                        <button class="buttons" id="button_reset" onclick="reset_ticks()">
+                            <span>Reset ticks</span>
+                        </button>
                         <button class="buttons" onmousedown="reculer()" onmouseup="stop()">
                             <span>Reculer</span>
                         </button>
                         <div class="empty-cell"></div>
+                    </div>
 
+                    <div id="parameters">
+                        <div id="coeff">
+                            <span>kp: <input type="number" name="coeff_kp" id="coeff_kp" value="2" min="0" step="0.1"></span>
+                            <span>ki: <input type="number" name="coeff_ki" id="coeff_ki" value="0.1" min="0" step="0.1"></span>
+                            <span>kd: <input type="number" name="coeff_kd" id="coeff_kd" value="0.5" min="0" step="0.1"></span>
+                            <span><input type="submit" value="SEND" id="send_coeff" onclick="update_coeff()"></span>
+                        </div>
                     </div>
                 </div>
-                
+
                 <!-- Sequence Controls -->
                 <div class="section">
                     <h3 class="section-title">Séquences</h3>
-                    <div class="sequence-buttons">
-                        <button class="buttons">
+                    <div id="sequence-buttons">
+                        <button class="buttons" onclick="sequence_1()">
                             <span>Séquence 1</span>
                         </button>
                         <button class="buttons">
