@@ -57,9 +57,10 @@ double P = 0, I = 0, D = 0;
 bool in_sequence1 = false;
 
 void IRAM_ATTR onTickGauche() {
-    if (digitalRead(ENC_G_CH_B) == LOW) {
+    if (digitalRead(ENC_G_CH_A) == HIGH) {
         wheel_left.nbr_ticks++;
-    } else {
+    }
+    else {
         wheel_left.nbr_ticks--;
     }
 }
@@ -67,7 +68,8 @@ void IRAM_ATTR onTickGauche() {
 void IRAM_ATTR onTickDroite() {
     if (digitalRead(ENC_D_CH_B) == HIGH) {
         wheel_right.nbr_ticks++;
-    } else {
+    }
+    else {
         wheel_right.nbr_ticks--;
     }
 }
@@ -296,7 +298,7 @@ void handleRoot() {
 
                             <div id="parameters">
                                 <div id="coeff">
-                                    <span>kp: <input type="number" name="coeff_kp" id="coeff_kp" value="2" min="0" step="0.1"></span>
+                                    <span>kp: <input type="number" name="coeff_kp" id="coeff_kp" value="3" min="0" step="0.1"></span>
                                     <span>ki: <input type="number" name="coeff_ki" id="coeff_ki" value="0.1" min="0" step="0.1"></span>
                                     <span>kd: <input type="number" name="coeff_kd" id="coeff_kd" value="0.5" min="0" step="0.1"></span>
                                     <span><input type="submit" value="SEND" id="send_coeff" onclick="update_coeff()"></span>
@@ -360,7 +362,7 @@ void setup() {
 
     pinMode(ENC_G_CH_A, INPUT);
     pinMode(ENC_D_CH_A, INPUT);
-    attachInterrupt(digitalPinToInterrupt(ENC_G_CH_A), onTickGauche, RISING);
+    attachInterrupt(digitalPinToInterrupt(ENC_G_CH_B), onTickGauche, RISING);
     attachInterrupt(digitalPinToInterrupt(ENC_D_CH_A), onTickDroite, RISING);
 
     // Activer les moteurs (mettre les broches EN à HIGH)
@@ -419,6 +421,7 @@ void loop() {
         P = wheel_right.error;
         I = I + wheel_right.error;
         D = wheel_right.error - wheel_right.last_error;
+        wheel_left.last_error = wheel_left.error;
         wheel_right.last_error = wheel_right.error;
 
         float PID_result = kp*P + ki*I + kd*D;
@@ -457,20 +460,12 @@ void loop() {
         }
 
         // Condition d'arrêt si erreur négligeable
-        if (wheel_left.error==wheel_left.last_error && wheel_right.error==wheel_right.last_error) {
+        if (abs(wheel_left.error) < 10 && abs(wheel_right.error) < 10 && wheel_left.error==wheel_left.last_error && wheel_right.error==wheel_right.last_error) {
             stop();
             in_sequence1 = false;
             Serial.println("Séquence 1 terminée!");
             return;  // Stop PID
         }
-
-        // Sécurité
-        // if (abs(wheel_left.error) > wheel_left.target_ticks+33 || abs(wheel_right.error) > wheel_right.target_ticks+33) {
-        //     stop();
-        //     in_sequence1 = false;
-        //     Serial.println("Erreur!");
-        //     return;  // Stop PID
-        // }
     }
 }
 
