@@ -34,6 +34,8 @@
 #define ADDR_IMU 0x6B
 #define ADDR_MAG 0x1E
 
+#define conversion_number 33; // Nombre de ticks des encodeurs (33 ticks = 1cm)
+
 
 class Wheel{
     public:
@@ -46,12 +48,10 @@ class Wheel{
 Wheel wheel_left;
 Wheel wheel_right;
 
-// Nombre de ticks des encodeurs (33 ticks = 1cm)
-const short int conversion_number = 33;
 unsigned short int target_distance = 20;
 
 // Coefficients PID
-const float kp = 2, ki = 1, kd = 1;
+const float kp = 2, ki = 0, kd = 0.1;
 double P = 0, I = 0, D = 0;
 bool in_sequence1 = false;
 
@@ -383,9 +383,9 @@ void loop() {
 
         P = wheel_left.error;
 
-        I = I+wheel_left.error;
+        I = I + wheel_left.error;
 
-        D = wheel_left.error-wheel_left.last_error;
+        D = wheel_left.error - wheel_left.last_error;
         wheel_left.last_error = wheel_left.error;
 
         float PID_result = kp*P + ki*I + kd*D;
@@ -411,35 +411,35 @@ void loop() {
 
         // Commande moteurs gauche
         if (speed_left > 0) {
-        ledcWrite(IN_1_G, speed_left);
-        ledcWrite(IN_2_G, 0);
+            ledcWrite(IN_1_G, speed_left);
+            ledcWrite(IN_2_G, 0);
         } else {
-        ledcWrite(IN_1_G, 0);
-        ledcWrite(IN_2_G, -speed_left);
+            ledcWrite(IN_1_G, 0);
+            ledcWrite(IN_2_G, -speed_left);
         }
         // Commande moteurs droit
         if (speed_left > 0) {
-        ledcWrite(IN_1_D, 0);
-        ledcWrite(IN_2_D, speed_left);
+            ledcWrite(IN_1_D, 0);
+            ledcWrite(IN_2_D, speed_left);
         } else {
-        ledcWrite(IN_1_D, -speed_left);
-        ledcWrite(IN_2_D, 0);
+            ledcWrite(IN_1_D, -speed_left);
+            ledcWrite(IN_2_D, 0);
         }
 
         // Condition d'arrêt si erreur négligeable
-        if (abs(wheel_left.error) < 5) {
-        stop();
-        in_sequence1 = false;
-        Serial.println("Séquence 1 terminée avec précision");
-        return;  // Stop PID
-        }
+        // if (abs(wheel_left.error) < 10) {
+        //     stop();
+        //     in_sequence1 = false;
+        //     Serial.println("Séquence 1 terminée avec précision");
+        //     return;  // Stop PID
+        // }
 
         // Sécurité
         if (abs(wheel_left.error) > wheel_left.target_ticks+33 || abs(wheel_right.error) > wheel_right.target_ticks+33) {
-        stop();
-        in_sequence1 = false;
-        Serial.println("Erreur!");
-        return;  // Stop PID
+            stop();
+            in_sequence1 = false;
+            Serial.println("Erreur!");
+            return;  // Stop PID
         }
     }
 }
