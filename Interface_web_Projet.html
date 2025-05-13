@@ -1,125 +1,145 @@
 <!DOCTYPE html>
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>DRAWBOT - InterfaceWeb</title>
-        <style>
-            * {
-                margin: 0;
-            }
-            header {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                height: 150px;
-                background-color: rgba(0, 113, 121, 0.7);
-                position: relative;
-            }
-            .title-container {
-                text-align: center;
-            }
-            h1 {
-                font-size: 60px;
-                color: white;
-            }
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRAWBOT - InterfaceWeb</title>
+    <style>
+        * {
+            margin: 0;
+            font-family: arial, sans-serif;
+        }
 
-            body {
-                background-image: url("background.PNG");
-                background-repeat: no-repeat;
-                background-size: cover;
-                background-color: rgba(0, 0, 0, 0.3);
-                background-blend-mode: overlay;
-            }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 150px;
+            background-color: rgba(0, 113, 121, 0.7);
+            position: relative;
+        }
 
-            main {
-                max-width: 1200px;
-                margin: 2rem auto;
-                padding: 0 1rem;
-            }
+        .title-container {
+            text-align: center;
+        }
 
-            .card {
-                background-color: rgba(255, 255, 255, 0.8);
-                border-radius: 0.5rem;
-                overflow: hidden;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.7);
-            }
+        h1 {
+            font-size: 60px;
+            color: white;
+        }
 
-            .card-header {
-                background-color: #007179;
-                color: white;
-                padding: 1rem;
-                border-bottom: 1px solid #e5e7eb;
-                font-size: 1.25rem;
-                font-weight: bold;
-            }
+        body {
+            background-color: rgba(0, 0, 0, 0.3);
+            background-blend-mode: overlay;
+        }
 
-            .card-body {
-                padding: 1.5rem;
-            }
+        main {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
 
-            .section-title {
-                font-size: 30px;
-                color: rgba(0, 113, 121, 0.8);
-                margin-bottom: 1rem;
-            }
+        .card {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.7);
+        }
 
-            /* Movement controls */
-            .movement-buttons {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 1rem;
-                max-width: 24rem;
-                margin: 0 auto;
-            }
+        .card-header {
+            background-color: #007179;
+            color: white;
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
 
-            /* Sequence controls */
-            .sequence-buttons {
-                display: grid;
-                grid-template-columns: 1fr;
-                gap: 1rem;
-                grid-template-columns: repeat(3, 1fr);
-            }
+        .card-body {
+            padding: 1.5rem;
+        }
 
-            /* Button styles */
-            .buttons {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 1.5rem 1rem;
-                background-color: #007179;
-                color: white;
-                border: none;
-                border-radius: 0.375rem;
-                font-size: 1rem;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
+        .section-title {
+            font-size: 30px;
+            color: rgba(0, 113, 121, 0.8);
+            margin-bottom: 1rem;
+        }
 
-            .buttons:hover {
-                background-color: #00aeba;
-            }
+        /* Movement controls */
+        #movement-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            max-width: 24rem;
+            margin: 0 auto;
+        }
 
-            #button_stop {
-                background-color: #ec2424;
-            }
+        /* Paramètres */
+        #parameters {
+            margin: 1.5rem 0 2rem;
+            display: flex;
+        }
 
-            #button_stop:hover{
-                background-color: #b61d1d;
-            }
+        #coeff {
+            background-color: rgba(138, 138, 138, 0.3);
+            border: solid 3px black;
+            border-radius: 5px;
+            padding: 10px;
+            font-weight: bold;
+        }
 
-            #button_reset {
-                background-color: #8a8a8a;
-            }
+        input {
+            width : 3rem;
+            margin-right: 0.75rem;
+        }
 
-            #button_reset:hover{
-                background-color: #6a6a6a;
-            }
-        </style>
-        <script>
+        /* Sequence controls */
+        #sequence-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        /* Button styles */
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+            background-color: #007179;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .buttons:hover {
+            background-color: #00aeba;
+        }
+
+        #button_stop {
+            background-color: #ec2424;
+        }
+
+        #button_stop:hover {
+            background-color: #b61d1d;
+        }
+
+        #button_reset {
+            background-color: #8a8a8a;
+        }
+
+        #button_reset:hover {
+            background-color: #6a6a6a;
+        }
+    </style>
+    <script>
         function avancer() {
-            fetch("/avancer"); 
+            fetch("/avancer");
         }
         function reculer() {
             fetch("/reculer");
@@ -139,83 +159,95 @@
         function sequence_1() {
             fetch("/sequence1");
         }
-        </script>
-    </head>
+        function update_coeff() {
+            let kp = document.getElementById("coeff_kp").value;
+            let ki = document.getElementById("coeff_ki").value;
+            let kd = document.getElementById("coeff_kd").value;
+            fetch(`/update_coeff?coeff_kp=${kp}&coeff_ki=${ki}&coeff_kd=${kd}`);
+        }
+    </script>
+</head>
 
-    <body>
-        <header>
-            <h1>DRAWBOT</h1>
-        </header>
-        <main>
-            <div class="card">
-                <div class="card-header">
-                    <h2>Contrôles DRAWBOT</h2>
-                </div>
+<body>
+    <header>
+        <h1>DRAWBOT</h1>
+    </header>
+    <main>
+        <div class="card">
+            <div class="card-header">
+                <h2>Contrôles DRAWBOT</h2>
+            </div>
 
-                <div class="card-body">
-                    <!-- Movement Controls -->
-                    <div class="section">
-                        <h3 class="section-title">Contrôles de mouvement</h3>
-                        <div class="movement-buttons">
+            <div class="card-body">
+                <!-- Movement Controls -->
+                <div class="section">
+                    <h3 class="section-title">Contrôles de mouvement</h3>
+                    <div id="movement-buttons">
 
-                            <!-- Top row -->
-                            <div class="empty-cell"></div>
-                            <button class="buttons" onmousedown="avancer()" onmouseup="stop()">
-                                <span>Avancer</span>
-                            </button>
-                            <div class="empty-cell"></div>
-                            
-                            <!-- Middle row -->
-                            <button class="buttons" onmousedown="gauche()" onmouseup="stop()">
-                                <span>Gauche</span>
-                            </button>
-                            <button class="buttons" id="button_stop" onclick="stop()">
-                                <span>STOP</span>
-                            </button>
-                            <button class="buttons" onmousedown="droite()" onmouseup="stop()">
-                                <span>Droite</span>
-                            </button>
-                            
-                            <!-- Bottom row -->
-                            <div class="empty-cell"></div>
-                            <button class="buttons" onmousedown="reculer()" onmouseup="stop()">
-                                <span>Reculer</span>
-                            </button>
-                            <div class="empty-cell"></div>
-                            <div class="empty-cell"></div>
-                            <button class="buttons" id="button_reset" onclick="reset_ticks()">
-                                <span>Reset ticks</span>
-                            </button>
+                        <!-- Top row -->
+                        <div class="empty-cell"></div>
+                        <button class="buttons" onmousedown="avancer()" onmouseup="stop()">
+                            <span>Avancer</span>
+                        </button>
+                        <div class="empty-cell"></div>
 
+                        <!-- Middle row -->
+                        <button class="buttons" onmousedown="gauche()" onmouseup="stop()">
+                            <span>Gauche</span>
+                        </button>
+                        <button class="buttons" id="button_stop" onclick="stop()">
+                            <span>STOP</span>
+                        </button>
+                        <button class="buttons" onmousedown="droite()" onmouseup="stop()">
+                            <span>Droite</span>
+                        </button>
+
+                        <!-- Bottom row -->
+                        <button class="buttons" id="button_reset" onclick="reset_ticks()">
+                            <span>Reset ticks</span>
+                        </button>
+                        <button class="buttons" onmousedown="reculer()" onmouseup="stop()">
+                            <span>Reculer</span>
+                        </button>
+                        <div class="empty-cell"></div>
+                    </div>
+
+                    <div id="parameters">
+                        <div id="coeff">
+                            <span>kp: <input type="number" name="coeff_kp" id="coeff_kp" value="2" min="0" step="0.1"></span>
+                            <span>ki: <input type="number" name="coeff_ki" id="coeff_ki" value="0.1" min="0" step="0.1"></span>
+                            <span>kd: <input type="number" name="coeff_kd" id="coeff_kd" value="0.5" min="0" step="0.1"></span>
+                            <span><input type="submit" value="SEND" id="send_coeff" onclick="update_coeff()"></span>
                         </div>
                     </div>
-                    
-                    <!-- Sequence Controls -->
-                    <div class="section">
-                        <h3 class="section-title">Séquences</h3>
-                        <div class="sequence-buttons">
-                            <button class="buttons" onclick="sequence_1()">
-                                <span>Séquence 1</span>
-                            </button>
-                            <button class="buttons">
-                                <span>Séquence 2</span>
-                            </button>
-                            <button class="buttons">
-                                <span>Séquence 3</span>
-                            </button>
-                            <button class="buttons">
-                                <span>Bonus 1</span>
-                            </button>
-                            <button class="buttons">
-                                <span>Bonus 2</span>
-                            </button>
-                            <button class="buttons">
-                                <span>Bonus 3</span>
-                            </button>
-                        </div>
+                </div>
+
+                <!-- Sequence Controls -->
+                <div class="section">
+                    <h3 class="section-title">Séquences</h3>
+                    <div id="sequence-buttons">
+                        <button class="buttons" onclick="sequence_1()">
+                            <span>Séquence 1</span>
+                        </button>
+                        <button class="buttons">
+                            <span>Séquence 2</span>
+                        </button>
+                        <button class="buttons">
+                            <span>Séquence 3</span>
+                        </button>
+                        <button class="buttons">
+                            <span>Bonus 1</span>
+                        </button>
+                        <button class="buttons">
+                            <span>Bonus 2</span>
+                        </button>
+                        <button class="buttons">
+                            <span>Bonus 3</span>
+                        </button>
                     </div>
                 </div>
             </div>
-        </main>
-    </body>
+        </div>
+    </main>
+</body>
 </html>

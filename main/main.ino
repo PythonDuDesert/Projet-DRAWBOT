@@ -34,7 +34,7 @@
 #define ADDR_IMU 0x6B
 #define ADDR_MAG 0x1E
 
-#define conversion_number 33; // Nombre de ticks des encodeurs (33 ticks = 1cm)
+#define conversion_number 33 // Nombre de ticks des encodeurs (33 ticks = 1cm)
 
 
 class Wheel{
@@ -43,6 +43,7 @@ class Wheel{
     volatile long int nbr_ticks;
     volatile long int error;
     volatile long int last_error;
+    short int speed;
 };
 
 Wheel wheel_left;
@@ -51,12 +52,12 @@ Wheel wheel_right;
 unsigned short int target_distance = 20;
 
 // Coefficients PID
-const float kp = 2, ki = 0, kd = 0.1;
+float kp = 3, ki = 0.1, kd = 0.5;
 double P = 0, I = 0, D = 0;
 bool in_sequence1 = false;
 
 void IRAM_ATTR onTickGauche() {
-    if (digitalRead(ENC_G_CH_B) == HIGH) {
+    if (digitalRead(ENC_G_CH_B) == LOW) {
         wheel_left.nbr_ticks++;
     } else {
         wheel_left.nbr_ticks--;
@@ -87,7 +88,9 @@ void handleRoot() {
             <style>
                 * {
                     margin: 0;
+                    font-family: arial, sans-serif;
                 }
+
                 header {
                     display: flex;
                     align-items: center;
@@ -96,18 +99,17 @@ void handleRoot() {
                     background-color: rgba(0, 113, 121, 0.7);
                     position: relative;
                 }
+
                 .title-container {
                     text-align: center;
                 }
+
                 h1 {
                     font-size: 60px;
                     color: white;
                 }
 
                 body {
-                    background-image: url("background.PNG");
-                    background-repeat: no-repeat;
-                    background-size: cover;
                     background-color: rgba(0, 0, 0, 0.3);
                     background-blend-mode: overlay;
                 }
@@ -145,7 +147,7 @@ void handleRoot() {
                 }
 
                 /* Movement controls */
-                .movement-buttons {
+                #movement-buttons {
                     display: grid;
                     grid-template-columns: repeat(3, 1fr);
                     gap: 1rem;
@@ -153,8 +155,27 @@ void handleRoot() {
                     margin: 0 auto;
                 }
 
+                /* Paramètres */
+                #parameters {
+                    margin: 1.5rem 0 2rem;
+                    display: flex;
+                }
+
+                #coeff {
+                    background-color: rgba(138, 138, 138, 0.3);
+                    border: solid 3px black;
+                    border-radius: 5px;
+                    padding: 10px;
+                    font-weight: bold;
+                }
+
+                input {
+                    width : 3rem;
+                    margin-right: 0.75rem;
+                }
+
                 /* Sequence controls */
-                .sequence-buttons {
+                #sequence-buttons {
                     display: grid;
                     grid-template-columns: 1fr;
                     gap: 1rem;
@@ -186,7 +207,7 @@ void handleRoot() {
                     background-color: #ec2424;
                 }
 
-                #button_stop:hover{
+                #button_stop:hover {
                     background-color: #b61d1d;
                 }
 
@@ -194,32 +215,38 @@ void handleRoot() {
                     background-color: #8a8a8a;
                 }
 
-                #button_reset:hover{
+                #button_reset:hover {
                     background-color: #6a6a6a;
                 }
             </style>
             <script>
-            function avancer() {
-                fetch("/avancer"); 
-            }
-            function reculer() {
-                fetch("/reculer");
-            }
-            function gauche() {
-                fetch("/gauche");
-            }
-            function droite() {
-                fetch("/droite");
-            }
-            function stop() {
-                fetch("/stop");
-            }
-            function reset_ticks() {
-                fetch("/reset_ticks");
-            }
-            function sequence_1() {
-                fetch("/sequence1");
-            }
+                function avancer() {
+                    fetch("/avancer");
+                }
+                function reculer() {
+                    fetch("/reculer");
+                }
+                function gauche() {
+                    fetch("/gauche");
+                }
+                function droite() {
+                    fetch("/droite");
+                }
+                function stop() {
+                    fetch("/stop");
+                }
+                function reset() {
+                    fetch("/reset");
+                }
+                function sequence_1() {
+                    fetch("/sequence1");
+                }
+                function update_coeff() {
+                    let kp = document.getElementById("coeff_kp").value;
+                    let ki = document.getElementById("coeff_ki").value;
+                    let kd = document.getElementById("coeff_kd").value;
+                    fetch(`/update_coeff?coeff_kp=${kp}&coeff_ki=${ki}&coeff_kd=${kd}`);
+                }
             </script>
         </head>
 
@@ -237,7 +264,7 @@ void handleRoot() {
                         <!-- Movement Controls -->
                         <div class="section">
                             <h3 class="section-title">Contrôles de mouvement</h3>
-                            <div class="movement-buttons">
+                            <div id="movement-buttons">
 
                                 <!-- Top row -->
                                 <div class="empty-cell"></div>
@@ -245,7 +272,7 @@ void handleRoot() {
                                     <span>Avancer</span>
                                 </button>
                                 <div class="empty-cell"></div>
-                                
+
                                 <!-- Middle row -->
                                 <button class="buttons" onmousedown="gauche()" onmouseup="stop()">
                                     <span>Gauche</span>
@@ -256,25 +283,31 @@ void handleRoot() {
                                 <button class="buttons" onmousedown="droite()" onmouseup="stop()">
                                     <span>Droite</span>
                                 </button>
-                                
+
                                 <!-- Bottom row -->
-                                <div class="empty-cell"></div>
+                                <button class="buttons" id="button_reset" onclick="reset()">
+                                    <span>Reset</span>
+                                </button>
                                 <button class="buttons" onmousedown="reculer()" onmouseup="stop()">
                                     <span>Reculer</span>
                                 </button>
                                 <div class="empty-cell"></div>
-                                <div class="empty-cell"></div>
-                                <button class="buttons" id="button_reset" onclick="reset_ticks()">
-                                    <span>Reset ticks</span>
-                                </button>
+                            </div>
 
+                            <div id="parameters">
+                                <div id="coeff">
+                                    <span>kp: <input type="number" name="coeff_kp" id="coeff_kp" value="2" min="0" step="0.1"></span>
+                                    <span>ki: <input type="number" name="coeff_ki" id="coeff_ki" value="0.1" min="0" step="0.1"></span>
+                                    <span>kd: <input type="number" name="coeff_kd" id="coeff_kd" value="0.5" min="0" step="0.1"></span>
+                                    <span><input type="submit" value="SEND" id="send_coeff" onclick="update_coeff()"></span>
+                                </div>
                             </div>
                         </div>
-                        
+
                         <!-- Sequence Controls -->
                         <div class="section">
                             <h3 class="section-title">Séquences</h3>
-                            <div class="sequence-buttons">
+                            <div id="sequence-buttons">
                                 <button class="buttons" onclick="sequence_1()">
                                     <span>Séquence 1</span>
                                 </button>
@@ -349,26 +382,28 @@ void setup() {
     server.on("/gauche", gauche);
     server.on("/droite", droite);
     server.on("/stop", stop);
-    server.on("/reset_ticks", reset_ticks);
+    server.on("/reset", reset);
     server.on("/sequence1", sequence1);
     server.begin();
     Serial.println("Serveur HTTP lancé.");
 
-    wheel_left.target_ticks = 0;
+    wheel_left.target_ticks = target_distance*conversion_number;
     wheel_left.nbr_ticks = 0;
     wheel_left.error = 0;
     wheel_left.last_error = 0;
-    wheel_right.target_ticks = 0;
+    wheel_left.speed = 0;
+    wheel_right.target_ticks = target_distance*conversion_number;
     wheel_right.nbr_ticks = 0;
     wheel_right.error = 0;
     wheel_right.last_error = 0;
+    wheel_right.speed = 0;
 }
 
 void loop() {
     server.handleClient();
 
     static unsigned long memo_time = 0;
-    if (millis() - memo_time > 100) {
+    if (millis() - memo_time > 200) {
         Serial.print("Ticks gauche: ");
         Serial.println(wheel_left.nbr_ticks);
         Serial.print("Ticks droite: ");
@@ -381,66 +416,61 @@ void loop() {
         wheel_left.error = wheel_left.target_ticks - wheel_left.nbr_ticks;
         wheel_right.error = wheel_right.target_ticks - wheel_right.nbr_ticks;
 
-        P = wheel_left.error;
-
-        I = I + wheel_left.error;
-
-        D = wheel_left.error - wheel_left.last_error;
-        wheel_left.last_error = wheel_left.error;
+        P = wheel_right.error;
+        I = I + wheel_right.error;
+        D = wheel_right.error - wheel_right.last_error;
+        wheel_right.last_error = wheel_right.error;
 
         float PID_result = kp*P + ki*I + kd*D;
-
-        short int speed_left = PID_result;
-        speed_left = constrain(speed_left, -255, 255);
+        wheel_left.speed = PID_result;
+        wheel_right.speed = PID_result;
 
         Serial.print("Error left : ");
         Serial.println(wheel_left.error);
         Serial.print("Error right : ");
         Serial.println(wheel_right.error);
-        Serial.print("P : ");
-        Serial.println(P);
-        Serial.print("I : ");
-        Serial.println(I);
-        Serial.print("D : ");
-        Serial.println(D);
 
         Serial.print("Ticks gauche : ");
         Serial.println(wheel_left.nbr_ticks);
         Serial.print("Ticks droite : ");
         Serial.println(wheel_right.nbr_ticks);
 
+        float distance = (float)wheel_right.nbr_ticks/(float)conversion_number;
+        Serial.print("Distance : ");
+        Serial.println(distance);
+
         // Commande moteurs gauche
-        if (speed_left > 0) {
-            ledcWrite(IN_1_G, speed_left);
+        if (wheel_left.speed > 0) {
+            ledcWrite(IN_1_G, wheel_left.speed);
             ledcWrite(IN_2_G, 0);
         } else {
             ledcWrite(IN_1_G, 0);
-            ledcWrite(IN_2_G, -speed_left);
+            ledcWrite(IN_2_G, -wheel_left.speed);
         }
         // Commande moteurs droit
-        if (speed_left > 0) {
+        if (wheel_right.speed > 0) {
             ledcWrite(IN_1_D, 0);
-            ledcWrite(IN_2_D, speed_left);
+            ledcWrite(IN_2_D, wheel_right.speed);
         } else {
-            ledcWrite(IN_1_D, -speed_left);
+            ledcWrite(IN_1_D, -wheel_right.speed);
             ledcWrite(IN_2_D, 0);
         }
 
         // Condition d'arrêt si erreur négligeable
-        // if (abs(wheel_left.error) < 10) {
-        //     stop();
-        //     in_sequence1 = false;
-        //     Serial.println("Séquence 1 terminée avec précision");
-        //     return;  // Stop PID
-        // }
-
-        // Sécurité
-        if (abs(wheel_left.error) > wheel_left.target_ticks+33 || abs(wheel_right.error) > wheel_right.target_ticks+33) {
+        if (wheel_left.error==wheel_left.last_error && wheel_right.error==wheel_right.last_error) {
             stop();
             in_sequence1 = false;
-            Serial.println("Erreur!");
+            Serial.println("Séquence 1 terminée!");
             return;  // Stop PID
         }
+
+        // Sécurité
+        // if (abs(wheel_left.error) > wheel_left.target_ticks+33 || abs(wheel_right.error) > wheel_right.target_ticks+33) {
+        //     stop();
+        //     in_sequence1 = false;
+        //     Serial.println("Erreur!");
+        //     return;  // Stop PID
+        // }
     }
 }
 
@@ -449,6 +479,7 @@ void stop() {
     ledcWrite(IN_2_D, 0);
     ledcWrite(IN_1_G, 0);
     ledcWrite(IN_2_G, 0);
+    in_sequence1 = false;
 }
 
 void avancer() {
@@ -479,14 +510,22 @@ void droite() {
     ledcWrite(IN_2_G, 0);
 }
 
-void reset_ticks() {
+void reset() {
     stop();
     wheel_left.nbr_ticks = 0;
     wheel_right.nbr_ticks = 0;
+    in_sequence1 = false;
 }
 
 void sequence1() {
-    reset_ticks();
+    reset();
     in_sequence1 = true;
     server.send(200, "text/plain", "Sequence 1 started");
+}
+
+void update_coeff() {
+    kp = server.arg("coeff_kp").toFloat();
+    ki = server.arg("coeff_ki").toFloat();
+    kd = server.arg("coeff_kd").toFloat();
+    server.send(200, "text/plain", "Coefficients PID mis à jour");
 }
