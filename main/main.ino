@@ -45,16 +45,19 @@ class Wheel{
     volatile long int last_error;
     short int speed;
 };
-
 Wheel wheel_left;
 Wheel wheel_right;
 
 unsigned short int target_distance = 20;
 
-// Coefficients PID
-float kp = 2, ki = 0, kd = 0.5;
-double P = 0, I = 0, D = 0;
+// PID distance
+float kp_dist = 2, ki_dist = 0, kd_dist = 0.3;
+double P_dist = 0, I_dist = 0, D_dist = 0;
 bool in_sequence1 = false;
+
+// PID écart
+float kp_diff = 1.2, ki_diff = 0, kd_diff = 0.2;
+float P_diff = 0, I_diff = 0, D_diff = 0;
 
 void IRAM_ATTR onTickGauche() {
     if (digitalRead(ENC_G_CH_A) == HIGH) {
@@ -245,10 +248,18 @@ void handleRoot() {
                     fetch("/sequence1");
                 }
                 function update_coeff() {
-                    let kp = document.getElementById("coeff_kp").value;
-                    let ki = document.getElementById("coeff_ki").value;
-                    let kd = document.getElementById("coeff_kd").value;
-                    fetch(`/update_coeff?coeff_kp=${kp}&coeff_ki=${ki}&coeff_kd=${kd}`);
+                    let kp_dist = document.getElementById("coeff_kp_dist").value;
+                    let ki_dist = document.getElementById("coeff_ki_dist").value;
+                    let kd_dist = document.getElementById("coeff_kd_dist").value;
+                    fetch(`/update_coeff?coeff_kp_dist=${kp_dist}&coeff_ki_dist=${ki_dist}&coeff_kd_dist=${kd_dist}`);
+                    document.getElementById("reset_coeff").style.background = "lightgrey";
+                }
+                function reset_coeff() {
+                    let kp_dist = 2;
+                    let ki_dist = 0;
+                    let kd_dist = 0.3;
+                    fetch(`/update_coeff?coeff_kp_dist=${kp_dist}&coeff_ki_dist=${ki_dist}&coeff_kd_dist=${kd_dist}`);
+                    document.getElementById("reset_coeff").style.background = "darkgreen";
                 }
             </script>
         </head>
@@ -299,10 +310,11 @@ void handleRoot() {
 
                             <div id="parameters">
                                 <div id="coeff">
-                                    <span>kp: <input type="number" name="coeff_kp" id="coeff_kp" value="3" min="0" step="0.1"></span>
-                                    <span>ki: <input type="number" name="coeff_ki" id="coeff_ki" value="0.1" min="0" step="0.1"></span>
-                                    <span>kd: <input type="number" name="coeff_kd" id="coeff_kd" value="0.5" min="0" step="0.1"></span>
-                                    <span><input type="submit" value="SEND" id="send_coeff" onclick="update_coeff()"></span>
+                                    <span>kp_dist: <input type="number" name="coeff_kp_dist" id="coeff_kp_dist" value="3" min="0" step="0.1"></span>
+                                    <span>ki_dist: <input type="number" name="coeff_ki_dist" id="coeff_ki_dist" value="0.1" min="0" step="0.1"></span>
+                                    <span>kd_dist: <input type="number" name="coeff_kd_dist" id="coeff_kd_dist" value="0.5" min="0" step="0.1"></span>
+                                    <button id="reset_coeff" onclick="reset_coeff()">RESET</button>
+                                    <button id="send_coeff" onclick="update_coeff()">SEND</button>
                                 </div>
                             </div>
                         </div>
@@ -418,31 +430,50 @@ void loop() {
         //https://projecthub.arduino.cc/anova9347/line-follower-robot-with-pid-controller-01813f
         wheel_left.error = wheel_left.target_ticks - wheel_left.nbr_ticks;
         wheel_right.error = wheel_right.target_ticks - wheel_right.nbr_ticks;
+        int avg_error = (wheel_left.error + wheel_right.error)/2;
 
-        P = wheel_right.error;
-        I = I + wheel_right.error;
-        D = wheel_right.error - wheel_right.last_error;
+        P_dist = avg_error;
+        I_dist = I_dist + avg_error;
+        D_dist = avg_error - (wheel_left.last_error + wheel_right.last_error)/2;
         wheel_left.last_error = wheel_left.error;
         wheel_right.last_error = wheel_right.error;
 
-        float PID_result = kp*P + ki*I + kd*D;
-        wheel_left.speed = PID_result;
-        wheel_right.speed = PID_result;
-        wheel_left.speed = constrain(wheel_left.speed, -180, 180);
+        int error_diff = wheel_left.nbr_ticks - wheel_right.nbr_ticks;
+        P_diff = error_diff;
+        I_diff += error_diff;
+        D_diff = error_diff - (wheel_left.last_error + wheel_right.last_error)/2;
+        wheel_right.last_error = error_diff;
+
+        float PID_dist_result = kp_dist*P_dist + ki_dist*I_dist + kd_dist*D_dist;
+        float PID_diff_result = kp_diff*P_diff + ki_diff*I_diff + kd_diff*D_diff;
+        wheel_left.speed = PID_dist_result - PID_diff_result;
+        wheel_right.speed = PID_dist_result + PID_diff_result;
+        wheel_left.speed = constrain(wheel_left.speed, -180, 180); //Plafond
         wheel_right.speed = constrain(wheel_right.speed, -180, 180);
-        if (abs(wheel_left.speed) < 40 && abs(wheel_left.speed) > 10) {
-            wheel_right.speed = 40;
+        if (abs(wheel_left.speed) < 100 && abs(wheel_left.speed) >= 60) { //Plancher
+            wheel_left.speed = copysign(100, wheel_left.speed);
         }
-        if (abs(wheel_right.speed) < 40 && abs(wheel_right.speed) > 10) {
-            wheel_right.speed = 40;
+        else if (abs(wheel_left.speed) < 60 && abs(wheel_left.speed) >= 10) {
+            wheel_left.speed = copysign(90, wheel_left.speed);
         }
-        if (abs(wheel_left.speed) < 10) {
+        else if (abs(wheel_left.speed) < 10) {
             wheel_left.speed = 0;
         }
-        if (abs(wheel_right.speed) < 10) {
+        if (abs(wheel_right.speed) < 100 && abs(wheel_right.speed) >= 60) { //Plancher
+            wheel_right.speed = copysign(100, wheel_right.speed);
+        }
+        else if (abs(wheel_right.speed) < 60 && abs(wheel_right.speed) >= 10) {
+            wheel_right.speed = copysign(90, wheel_right.speed);
+        }
+        else if (abs(wheel_right.speed) < 10) {
             wheel_right.speed = 0;
         }
-
+        
+        if (wheel_left.speed == 0 && wheel_right.speed == 0) {
+            stop();
+            in_sequence1 = false;
+            Serial.println("Séquence 1 terminée!");
+        }
 
         Serial.print("Error left : ");
         Serial.println(wheel_left.error);
@@ -457,6 +488,11 @@ void loop() {
         float distance = (float)((wheel_left.nbr_ticks+wheel_right.nbr_ticks)/2)/(float)conversion_number;
         Serial.print("Distance : ");
         Serial.println(distance);
+
+        Serial.print("Speed left : ");
+        Serial.println(wheel_left.speed);
+        Serial.print("Speed right : ");
+        Serial.println(wheel_right.speed);
 
         // Commande moteurs gauche
         if (wheel_left.speed > 0) {
@@ -475,15 +511,20 @@ void loop() {
             ledcWrite(IN_2_D, 0);
         }
 
-        // Condition d'arrêt si erreur négligeable
-        // if (abs(wheel_left.error) < 10 && abs(wheel_right.error) < 10 && wheel_left.error==wheel_left.last_error && wheel_right.error==wheel_right.last_error) {
-        //     stop();
-        //     in_sequence1 = false;
-        //     Serial.println("Séquence 1 terminée!");
-        //     return;  // Stop PID
-        // }
+        tracing();
     }
 }
+
+void tracing() {
+    Serial.print(wheel_left.error);
+    Serial.print('\t');
+    Serial.print(wheel_right.error);
+    Serial.print('\t');
+    Serial.print(wheel_left.speed);
+    Serial.print('\t');
+    Serial.println(wheel_right.speed);
+}
+
 
 void stop() {
     ledcWrite(IN_1_D, 0);
@@ -495,29 +536,29 @@ void stop() {
 
 void avancer() {
     ledcWrite(IN_1_D, 0);
-    ledcWrite(IN_2_D, 192);
-    ledcWrite(IN_1_G, 192);
+    ledcWrite(IN_2_D, 200);
+    ledcWrite(IN_1_G, 200);
     ledcWrite(IN_2_G, 0);
 }
 
 void reculer() {
-    ledcWrite(IN_1_D, 192);
+    ledcWrite(IN_1_D, 200);
     ledcWrite(IN_2_D, 0);
     ledcWrite(IN_1_G, 0);
-    ledcWrite(IN_2_G, 192);
+    ledcWrite(IN_2_G, 200);
 }
 
 void gauche() {
     ledcWrite(IN_1_D, 0);
-    ledcWrite(IN_2_D, 128);
+    ledcWrite(IN_2_D, 160);
     ledcWrite(IN_1_G, 0);
-    ledcWrite(IN_2_G, 128);
+    ledcWrite(IN_2_G, 160);
 }
 
 void droite() {
-    ledcWrite(IN_1_D, 128);
+    ledcWrite(IN_1_D, 160);
     ledcWrite(IN_2_D, 0);
-    ledcWrite(IN_1_G, 128);
+    ledcWrite(IN_1_G, 160);
     ledcWrite(IN_2_G, 0);
 }
 
@@ -535,8 +576,8 @@ void sequence1() {
 }
 
 void update_coeff() {
-    kp = server.arg("coeff_kp").toFloat();
-    ki = server.arg("coeff_ki").toFloat();
-    kd = server.arg("coeff_kd").toFloat();
+    kp_dist = server.arg("coeff_kp_dist").toFloat();
+    ki_dist = server.arg("coeff_ki_dist").toFloat();
+    kd_dist = server.arg("coeff_kd_dist").toFloat();
     server.send(200, "text/plain", "Coefficients PID mis à jour");
 }
