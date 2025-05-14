@@ -76,8 +76,8 @@ void IRAM_ATTR onTickDroite() {
 
 
 // Pour le WiFi
-const char* ssid = "TrojanHorse";
-const char* password = "F18hornet";
+const char* ssid = "TrojanHorse";  //nom du partage de co ou du wifi sur lequel il se connecte
+const char* password = "F18hornet"; //mot de passe de ce partage ou de ce wifi
 WebServer server(80);
 
 void handleRoot() {
