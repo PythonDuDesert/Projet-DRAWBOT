@@ -34,7 +34,7 @@
 #define ADDR_IMU 0x6B
 #define ADDR_MAG 0x1E
 
-#define conversion_number 33 // Nombre de ticks des encodeurs (33 ticks = 1cm)
+#define conversion_number 35.5 // Nombre de ticks des encodeurs (35.5 ticks = 1cm)
 
 
 class Wheel{
@@ -52,7 +52,7 @@ Wheel wheel_right;
 unsigned short int target_distance = 20;
 
 // Coefficients PID
-float kp = 3, ki = 0, kd = 0.5;
+float kp = 2, ki = 0, kd = 0.5;
 double P = 0, I = 0, D = 0;
 bool in_sequence1 = false;
 
@@ -427,6 +427,21 @@ void loop() {
         float PID_result = kp*P + ki*I + kd*D;
         wheel_left.speed = PID_result;
         wheel_right.speed = PID_result;
+        wheel_left.speed = constrain(wheel_left.speed, -180, 180);
+        wheel_right.speed = constrain(wheel_right.speed, -180, 180);
+        if (abs(wheel_left.speed) < 40 && abs(wheel_left.speed) > 10) {
+            wheel_right.speed = 40;
+        }
+        if (abs(wheel_right.speed) < 40 && abs(wheel_right.speed) > 10) {
+            wheel_right.speed = 40;
+        }
+        if (abs(wheel_left.speed) < 10) {
+            wheel_left.speed = 0;
+        }
+        if (abs(wheel_right.speed) < 10) {
+            wheel_right.speed = 0;
+        }
+
 
         Serial.print("Error left : ");
         Serial.println(wheel_left.error);
