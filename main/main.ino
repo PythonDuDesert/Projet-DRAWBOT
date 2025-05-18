@@ -53,11 +53,14 @@ unsigned short int target_distance = 20;
 // PID distance
 float kp_dist = 2, ki_dist = 0, kd_dist = 0.3;
 double P_dist = 0, I_dist = 0, D_dist = 0;
-bool in_sequence1 = false;
 
 // PID écart
 float kp_diff = 1.2, ki_diff = 0, kd_diff = 0.2;
 float P_diff = 0, I_diff = 0, D_diff = 0;
+
+bool in_sequence1 = false, in_sequence2 = false, in_sequence3 = false;
+
+volatile bool stop_requested = false;
 
 void IRAM_ATTR onTickGauche() {
     if (digitalRead(ENC_G_CH_A) == HIGH) {
@@ -75,6 +78,10 @@ void IRAM_ATTR onTickDroite() {
     else {
         wheel_right.nbr_ticks--;
     }
+}
+
+void IRAM_ATTR onStopInterrupt() {
+    stop_requested = true;
 }
 
 
@@ -244,8 +251,8 @@ void handleRoot() {
                 function reset() {
                     fetch("/reset");
                 }
-                function sequence_1() {
-                    fetch("/sequence1");
+                function start_sequence_1() {
+                    fetch("/start_sequence1");
                 }
                 function update_coeff() {
                     let kp_dist = document.getElementById("coeff_kp_dist").value;
@@ -323,7 +330,7 @@ void handleRoot() {
                         <div class="section">
                             <h3 class="section-title">Séquences</h3>
                             <div id="sequence-buttons">
-                                <button class="buttons" onclick="sequence_1()">
+                                <button class="buttons" onclick="start_sequence_1()">
                                     <span>Séquence 1</span>
                                 </button>
                                 <button class="buttons">
@@ -352,6 +359,7 @@ void handleRoot() {
 }
 
 
+// setup
 void setup() {
     Serial.begin(115200);
     WiFi.begin(ssid, password);
@@ -398,7 +406,7 @@ void setup() {
     server.on("/droite", droite);
     server.on("/stop", stop);
     server.on("/reset", reset);
-    server.on("/sequence1", sequence1);
+    server.on("/start_sequence1", start_sequence1);
     server.begin();
     Serial.println("Serveur HTTP lancé.");
 
@@ -412,11 +420,16 @@ void setup() {
     wheel_right.error = 0;
     wheel_right.last_error = 0;
     wheel_right.speed = 0;
+
+    pinMode(15, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(15), onStopInterrupt, FALLING);
+
 }
 
+// loop
 void loop() {
     server.handleClient();
-
+    
     static unsigned long memo_time = 0;
     if (millis() - memo_time > 200) {
         Serial.print("Ticks gauche: ");
@@ -426,94 +439,16 @@ void loop() {
         memo_time = millis();
     }
 
+    if (stop_requested) {
+        stop();
+        stop_requested = false;
+    }
+
     if (in_sequence1) {
-        //https://projecthub.arduino.cc/anova9347/line-follower-robot-with-pid-controller-01813f
-        wheel_left.error = wheel_left.target_ticks - wheel_left.nbr_ticks;
-        wheel_right.error = wheel_right.target_ticks - wheel_right.nbr_ticks;
-        int avg_error = (wheel_left.error + wheel_right.error)/2;
-
-        P_dist = avg_error;
-        I_dist = I_dist + avg_error;
-        D_dist = avg_error - (wheel_left.last_error + wheel_right.last_error)/2;
-        wheel_left.last_error = wheel_left.error;
-        wheel_right.last_error = wheel_right.error;
-
-        int error_diff = wheel_left.nbr_ticks - wheel_right.nbr_ticks;
-        P_diff = error_diff;
-        I_diff += error_diff;
-        D_diff = error_diff - (wheel_left.last_error + wheel_right.last_error)/2;
-        wheel_right.last_error = error_diff;
-
-        float PID_dist_result = kp_dist*P_dist + ki_dist*I_dist + kd_dist*D_dist;
-        float PID_diff_result = kp_diff*P_diff + ki_diff*I_diff + kd_diff*D_diff;
-        wheel_left.speed = PID_dist_result - PID_diff_result;
-        wheel_right.speed = PID_dist_result + PID_diff_result;
-        wheel_left.speed = constrain(wheel_left.speed, -180, 180); //Plafond
-        wheel_right.speed = constrain(wheel_right.speed, -180, 180);
-        if (abs(wheel_left.speed) < 100 && abs(wheel_left.speed) >= 60) { //Plancher
-            wheel_left.speed = copysign(100, wheel_left.speed);
-        }
-        else if (abs(wheel_left.speed) < 60 && abs(wheel_left.speed) >= 10) {
-            wheel_left.speed = copysign(90, wheel_left.speed);
-        }
-        else if (abs(wheel_left.speed) < 10) {
-            wheel_left.speed = 0;
-        }
-        if (abs(wheel_right.speed) < 100 && abs(wheel_right.speed) >= 60) { //Plancher
-            wheel_right.speed = copysign(100, wheel_right.speed);
-        }
-        else if (abs(wheel_right.speed) < 60 && abs(wheel_right.speed) >= 10) {
-            wheel_right.speed = copysign(90, wheel_right.speed);
-        }
-        else if (abs(wheel_right.speed) < 10) {
-            wheel_right.speed = 0;
-        }
-        
-        if (wheel_left.speed == 0 && wheel_right.speed == 0) {
-            stop();
-            in_sequence1 = false;
-            Serial.println("Séquence 1 terminée!");
-        }
-
-        Serial.print("Error left : ");
-        Serial.println(wheel_left.error);
-        Serial.print("Error right : ");
-        Serial.println(wheel_right.error);
-
-        Serial.print("Ticks gauche : ");
-        Serial.println(wheel_left.nbr_ticks);
-        Serial.print("Ticks droite : ");
-        Serial.println(wheel_right.nbr_ticks);
-
-        float distance = (float)((wheel_left.nbr_ticks+wheel_right.nbr_ticks)/2)/(float)conversion_number;
-        Serial.print("Distance : ");
-        Serial.println(distance);
-
-        Serial.print("Speed left : ");
-        Serial.println(wheel_left.speed);
-        Serial.print("Speed right : ");
-        Serial.println(wheel_right.speed);
-
-        // Commande moteurs gauche
-        if (wheel_left.speed > 0) {
-            ledcWrite(IN_1_G, wheel_left.speed);
-            ledcWrite(IN_2_G, 0);
-        } else {
-            ledcWrite(IN_1_G, 0);
-            ledcWrite(IN_2_G, -wheel_left.speed);
-        }
-        // Commande moteurs droit
-        if (wheel_right.speed > 0) {
-            ledcWrite(IN_1_D, 0);
-            ledcWrite(IN_2_D, wheel_right.speed);
-        } else {
-            ledcWrite(IN_1_D, -wheel_right.speed);
-            ledcWrite(IN_2_D, 0);
-        }
-
-        tracing();
+        sequence1();
     }
 }
+
 
 void tracing() {
     Serial.print(wheel_left.error);
@@ -569,10 +504,98 @@ void reset() {
     in_sequence1 = false;
 }
 
-void sequence1() {
+void start_sequence1() {
     reset();
     in_sequence1 = true;
     server.send(200, "text/plain", "Sequence 1 started");
+}
+
+void sequence1() {
+    //https://projecthub.arduino.cc/anova9347/line-follower-robot-with-pid-controller-01813f
+        wheel_left.error = wheel_left.target_ticks - wheel_left.nbr_ticks;
+        wheel_right.error = wheel_right.target_ticks - wheel_right.nbr_ticks;
+        int avg_error = (wheel_left.error + wheel_right.error)/2;
+
+        P_dist = avg_error;
+        I_dist = I_dist + avg_error;
+        D_dist = avg_error - (wheel_left.last_error + wheel_right.last_error)/2;
+        wheel_left.last_error = wheel_left.error;
+        wheel_right.last_error = wheel_right.error;
+
+        int error_diff = wheel_left.nbr_ticks - wheel_right.nbr_ticks;
+        P_diff = error_diff;
+        I_diff += error_diff;
+        D_diff = error_diff - (wheel_left.last_error + wheel_right.last_error)/2;
+        wheel_right.last_error = error_diff;
+
+        float PID_dist_result = kp_dist*P_dist + ki_dist*I_dist + kd_dist*D_dist;
+        float PID_diff_result = kp_diff*P_diff + ki_diff*I_diff + kd_diff*D_diff;
+        wheel_left.speed = PID_dist_result - PID_diff_result;
+        wheel_right.speed = PID_dist_result + PID_diff_result;
+        wheel_left.speed = constrain(wheel_left.speed, -180, 180); //Plafond
+        wheel_right.speed = constrain(wheel_right.speed, -180, 180);
+        if (abs(wheel_left.speed) < 100 && abs(wheel_left.speed) >= 40) { //Plancher
+            wheel_left.speed = copysign(100, wheel_left.speed);
+        }
+        else if (abs(wheel_left.speed) < 40 && abs(wheel_left.speed) >= 10) {
+            wheel_left.speed = copysign(90, wheel_left.speed);
+        }
+        else if (abs(wheel_left.speed) < 10) {
+            wheel_left.speed = 0;
+        }
+        if (abs(wheel_right.speed) < 100 && abs(wheel_right.speed) >= 40) { //Plancher
+            wheel_right.speed = copysign(100, wheel_right.speed);
+        }
+        else if (abs(wheel_right.speed) < 40 && abs(wheel_right.speed) >= 10) {
+            wheel_right.speed = copysign(90, wheel_right.speed);
+        }
+        else if (abs(wheel_right.speed) < 10) {
+            wheel_right.speed = 0;
+        }
+        
+        if (wheel_left.error <= 10 && wheel_right.error <= 10 && wheel_left.speed == 0 && wheel_right.speed == 0) {
+            stop();
+            in_sequence1 = false;
+            Serial.println("Séquence 1 terminée!");
+        }
+
+        Serial.print("Error left : ");
+        Serial.println(wheel_left.error);
+        Serial.print("Error right : ");
+        Serial.println(wheel_right.error);
+
+        Serial.print("Ticks gauche : ");
+        Serial.println(wheel_left.nbr_ticks);
+        Serial.print("Ticks droite : ");
+        Serial.println(wheel_right.nbr_ticks);
+
+        float distance = (float)((wheel_left.nbr_ticks+wheel_right.nbr_ticks)/2)/(float)conversion_number;
+        Serial.print("Distance : ");
+        Serial.println(distance);
+
+        Serial.print("Speed left : ");
+        Serial.println(wheel_left.speed);
+        Serial.print("Speed right : ");
+        Serial.println(wheel_right.speed);
+
+        // Commande moteurs gauche
+        if (wheel_left.speed > 0) {
+            ledcWrite(IN_1_G, wheel_left.speed);
+            ledcWrite(IN_2_G, 0);
+        } else {
+            ledcWrite(IN_1_G, 0);
+            ledcWrite(IN_2_G, -wheel_left.speed);
+        }
+        // Commande moteurs droit
+        if (wheel_right.speed > 0) {
+            ledcWrite(IN_1_D, 0);
+            ledcWrite(IN_2_D, wheel_right.speed);
+        } else {
+            ledcWrite(IN_1_D, -wheel_right.speed);
+            ledcWrite(IN_2_D, 0);
+        }
+
+        tracing();
 }
 
 void update_coeff() {
