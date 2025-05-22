@@ -49,6 +49,7 @@ Wheel wheel_left;
 Wheel wheel_right;
 
 unsigned short int target_distance = 20;
+unsigned short int target_angle = 90;
 
 // PID distance
 float kp_dist = 2, ki_dist = 0, kd_dist = 0.3;
@@ -58,9 +59,11 @@ double P_dist = 0, I_dist = 0, D_dist = 0;
 float kp_diff = 1.2, ki_diff = 0, kd_diff = 0.2;
 float P_diff = 0, I_diff = 0, D_diff = 0;
 
-bool in_sequence1 = false, in_sequence2 = false, in_sequence3 = false;
+// PID angle
+float kp_angle = 1, ki_angle = 0, kd_angle = 0.2;
+float P_angle = 0, I_angle = 0, D_angle = 0;
 
-volatile bool stop_requested = false;
+bool in_sequence1 = false, in_sequence2 = false, in_sequence3 = false;
 
 void IRAM_ATTR onTickGauche() {
     if (digitalRead(ENC_G_CH_A) == HIGH) {
@@ -80,15 +83,11 @@ void IRAM_ATTR onTickDroite() {
     }
 }
 
-void IRAM_ATTR onStopInterrupt() {
-    stop_requested = true;
-}
-
 
 // Pour le WiFi
 const char* ssid = "TrojanHorse";  //nom du partage de co ou du wifi sur lequel il se connecte
 const char* password = "F18hornet"; //mot de passe de ce partage ou de ce wifi
-//puis aller sur internet et taper : 192.168.229.1
+//puis aller sur internet et taper : 192.168.x.x (IP affiché dans la console)
 WebServer server(80);
 
 void handleRoot() {
@@ -420,10 +419,6 @@ void setup() {
     wheel_right.error = 0;
     wheel_right.last_error = 0;
     wheel_right.speed = 0;
-
-    pinMode(15, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(15), onStopInterrupt, FALLING);
-
 }
 
 // loop
@@ -437,11 +432,6 @@ void loop() {
         Serial.print("Ticks droite: ");
         Serial.println(wheel_right.nbr_ticks);
         memo_time = millis();
-    }
-
-    if (stop_requested) {
-        stop();
-        stop_requested = false;
     }
 
     if (in_sequence1) {
@@ -467,6 +457,8 @@ void stop() {
     ledcWrite(IN_1_G, 0);
     ledcWrite(IN_2_G, 0);
     in_sequence1 = false;
+    in_sequence2 = false;
+    in_sequence3 = false;
 }
 
 void avancer() {
@@ -553,7 +545,7 @@ void sequence1() {
             wheel_right.speed = 0;
         }
         
-        if (wheel_left.error <= 10 && wheel_right.error <= 10 && wheel_left.speed == 0 && wheel_right.speed == 0) {
+        if (wheel_left.error < 10 && wheel_right.error < 10 && wheel_left.speed == 0 && wheel_right.speed == 0) {
             stop();
             in_sequence1 = false;
             Serial.println("Séquence 1 terminée!");
