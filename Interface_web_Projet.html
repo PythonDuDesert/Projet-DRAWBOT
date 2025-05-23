@@ -172,10 +172,6 @@
             fetch(`/update_coeff?coeff_kp_dist=${kp_dist}&coeff_ki_dist=${ki_dist}&coeff_kd_dist=${kd_dist}`);
             document.getElementById("reset_coeff").style.background = "darkgreen";
         }
-        function change_speed() {
-            let speed = document.getElementById("vitesse").value;
-            fetch(`/avancer2?vitesse=${speed}`);
-        }
     </script>
 </head>
 
@@ -230,9 +226,6 @@
                             <span>kd: <input type="number" name="coeff_kd" id="coeff_kd" value="0.5" min="0" step="0.1"></span>
                             <button id="reset_coeff" onclick="reset_coeff()">RESET</button>
                             <button id="send_coeff" onclick="update_coeff()">SEND</button>
-                        </div>
-                        <div id="vitesse">
-                            <span>vitesse: <input type="number" name="vitesse" id="vitesse" value="40" onclick="change_speed()"></span>
                         </div>
                     </div>
                 </div>
