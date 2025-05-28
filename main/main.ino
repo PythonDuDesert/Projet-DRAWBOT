@@ -90,10 +90,16 @@ void IRAM_ATTR onTickDroite() {
     }
 }
 
-
+/*
 // Pour le WiFi
 const char* ssid = "TrojanHorse";  //nom du partage de co ou du wifi sur lequel il se connecte
 const char* password = "F18hornet"; //mot de passe de ce partage ou de ce wifi
+//puis aller sur internet et taper : 192.168.x.x (IP affiché dans la console)
+WebServer server(80);
+*/
+
+const char* ssid = "SFR_9F7F";  //nom du partage de co ou du wifi sur lequel il se connecte
+const char* password = "y4pw4r5lcwji97qrq5w4"; //mot de passe de ce partage ou de ce wifi
 //puis aller sur internet et taper : 192.168.x.x (IP affiché dans la console)
 WebServer server(80);
 
