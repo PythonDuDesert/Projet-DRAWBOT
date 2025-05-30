@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <Wire.h>
+#include <math.h>
 
 
 // User led
@@ -57,6 +58,9 @@ Wheel wheel_right;
 
 unsigned short int target_distance = 20;
 unsigned short int target_angle = 90;
+float last_angle_error = 0.0;
+
+float current_angle;
 
 // PID distance
 float kp_dist = 2, ki_dist = 0, kd_dist = 0.3;
@@ -67,8 +71,8 @@ float kp_diff = 1.2, ki_diff = 0, kd_diff = 0.2;
 float P_diff = 0, I_diff = 0, D_diff = 0;
 
 // PID angle
-float kp_angle = 1, ki_angle = 0, kd_angle = 0.2;
-float P_angle = 0, I_angle = 0, D_angle = 0;
+float kp_ang = 1, ki_ang = 0, kd_ang = 0.2;
+float P_ang = 0, I_ang = 0, D_ang = 0;
 
 bool in_sequence1 = false, in_sequence2 = false, in_sequence3 = false;
 
@@ -90,18 +94,20 @@ void IRAM_ATTR onTickDroite() {
     }
 }
 
-/*
+
 // Pour le WiFi
 const char* ssid = "TrojanHorse";  //nom du partage de co ou du wifi sur lequel il se connecte
 const char* password = "F18hornet"; //mot de passe de ce partage ou de ce wifi
 //puis aller sur internet et taper : 192.168.x.x (IP affiché dans la console)
 WebServer server(80);
-*/
 
+
+/*
 const char* ssid = "SFR_9F7F";  //nom du partage de co ou du wifi sur lequel il se connecte
 const char* password = "y4pw4r5lcwji97qrq5w4"; //mot de passe de ce partage ou de ce wifi
 //puis aller sur internet et taper : 192.168.x.x (IP affiché dans la console)
 WebServer server(80);
+*/
 
 void handleRoot() {
     String html = R"rawliteral(
@@ -467,6 +473,7 @@ void loop() {
 
     if (in_sequence1) {
         sequence1();
+        delay(50);
     }
 
     get_angle();
@@ -533,30 +540,16 @@ void start_sequence1() {
     reset();
     in_sequence1 = true;
     server.send(200, "text/plain", "Sequence 1 started");
-}
+} 
 
 void sequence1() {
     //https://projecthub.arduino.cc/anova9347/line-follower-robot-with-pid-controller-01813f
-        wheel_left.error = wheel_left.target_ticks - wheel_left.nbr_ticks;
-        wheel_right.error = wheel_right.target_ticks - wheel_right.nbr_ticks;
-        int avg_error = (wheel_left.error + wheel_right.error)/2;
 
-        P_dist = avg_error;
-        I_dist = I_dist + avg_error;
-        D_dist = avg_error - (wheel_left.last_error + wheel_right.last_error)/2;
-        wheel_left.last_error = wheel_left.error;
-        wheel_right.last_error = wheel_right.error;
-
-        int error_diff = wheel_left.nbr_ticks - wheel_right.nbr_ticks;
-        P_diff = error_diff;
-        I_diff += error_diff;
-        D_diff = error_diff - (wheel_left.last_error + wheel_right.last_error)/2;
-        wheel_right.last_error = error_diff;
-
-        float PID_dist_result = kp_dist*P_dist + ki_dist*I_dist + kd_dist*D_dist;
-        float PID_diff_result = kp_diff*P_diff + ki_diff*I_diff + kd_diff*D_diff;
-        wheel_left.speed = PID_dist_result - PID_diff_result;
-        wheel_right.speed = PID_dist_result + PID_diff_result;
+        float a = pid_distance1();
+        float b = pid_distance2();
+        
+        wheel_left.speed = a - b;
+        wheel_right.speed = a + b;
         wheel_left.speed = constrain(wheel_left.speed, -180, 180); //Plafond
         wheel_right.speed = constrain(wheel_right.speed, -180, 180);
         if (abs(wheel_left.speed) < 100 && abs(wheel_left.speed) >= 40) { //Plancher
@@ -581,6 +574,9 @@ void sequence1() {
         if (wheel_left.error < 10 && wheel_right.error < 10 && wheel_left.speed == 0 && wheel_right.speed == 0) {
             stop();
             in_sequence1 = false;
+            wheel_left.speed = 0;
+            wheel_right.speed = 0;     
+            turn_90();
             Serial.println("Séquence 1 terminée!");
         }
 
@@ -622,6 +618,128 @@ void sequence1() {
 
         tracing();
 }
+
+float pid_distance1() {
+
+        wheel_left.error = wheel_left.target_ticks - wheel_left.nbr_ticks;
+        wheel_right.error = wheel_right.target_ticks - wheel_right.nbr_ticks;
+        int avg_error = (wheel_left.error + wheel_right.error)/2;
+
+        P_dist = avg_error;
+        I_dist = I_dist + avg_error;
+        D_dist = avg_error - (wheel_left.last_error + wheel_right.last_error)/2;
+        wheel_left.last_error = wheel_left.error;
+        wheel_right.last_error = wheel_right.error;
+
+        float PID_dist_result = kp_dist*P_dist + ki_dist*I_dist + kd_dist*D_dist;
+
+        return PID_dist_result;
+}
+
+float pid_distance2() {
+    
+        int error_diff = wheel_left.nbr_ticks - wheel_right.nbr_ticks;
+        P_diff = error_diff;
+        I_diff += error_diff;
+        D_diff = error_diff - (wheel_left.last_error + wheel_right.last_error)/2;
+        wheel_right.last_error = error_diff;
+        
+        float PID_diff_result = kp_diff*P_diff + ki_diff*I_diff + kd_diff*D_diff;
+
+        return PID_diff_result;
+}
+
+float turn_90(){
+
+    const float amplitude = 160; // valeur maximale du speed en module
+    const float step = 0.1f;     // incrément de t à chaque itération
+    const float delay_us = 10000; // 10 ms
+
+    // t va de -π/2 à π/2, ce qui fait passer sin(t) de -1 à 1
+    for (float t = -M_PI_2; t <= M_PI_2; t += step) {
+        float sin_value = sin(t); // varie de -1 à 1
+        wheel_right.speed = amplitude;
+        wheel_left.speed = amplitude * sin_value;
+        
+
+        if (wheel_left.speed > 0) {
+            ledcWrite(IN_1_G, wheel_left.speed);
+            ledcWrite(IN_2_G, 0);
+        } else {
+            ledcWrite(IN_1_G, 0);
+            ledcWrite(IN_2_G, -wheel_left.speed);
+        }
+        // Commande moteurs droit
+        if (wheel_right.speed > 0) {
+            ledcWrite(IN_1_D, 0);
+            ledcWrite(IN_2_D, wheel_right.speed);
+        } else {
+            ledcWrite(IN_1_D, -wheel_right.speed);
+            ledcWrite(IN_2_D, 0);
+        }
+
+        usleep(delay_us); // pause pour que l'évolution soit progressive
+    }
+
+}
+
+/*
+float pid_angle1(float current_angle, float target_angle, float last_angle_error) {
+
+    float current_angle = 0;  // À remplacer par ta vraie fonction
+        float error = pid_angle1(current_angle, target_angle, last_angle_error);
+
+    // Peut-être une condition d'arrêt ?
+        if (abs(error) < 10.0) {
+            ledcWrite(IN_1_D, 0);
+            ledcWrite(IN_2_D, 0);
+            ledcWrite(IN_1_G, 0);
+            ledcWrite(IN_2_G, 0);
+        }
+
+    float angle_error = target_angle - current_angle;
+
+    // PID pour l’angle
+    P_ang = angle_error;
+    I_ang += angle_error;
+    D_ang = angle_error - last_angle_error;
+    last_angle_error = angle_error;
+
+    float PID_output = kp_ang * P_ang + ki_ang * I_ang + kd_ang * D_ang;
+
+    // Appliquer sur les vitesses des roues
+    wheel_right.speed = 180;  // constante
+    wheel_left.speed = -180 + PID_output;
+
+    // Limiter la vitesse gauche si besoin
+    if (wheel_left.speed > 180) {
+        wheel_left.speed = 180;
+    }
+    if (wheel_left.speed < -180) {
+        wheel_left.speed = -180;
+    }
+
+    // Commande moteurs gauche
+        if (wheel_left.speed > 0) {
+            ledcWrite(IN_1_G, wheel_left.speed);
+            ledcWrite(IN_2_G, 0);
+        } else {
+            ledcWrite(IN_1_G, 0);
+            ledcWrite(IN_2_G, -wheel_left.speed);
+        }
+        // Commande moteurs droit
+        if (wheel_right.speed > 0) {
+            ledcWrite(IN_1_D, 0);
+            ledcWrite(IN_2_D, wheel_right.speed);
+        } else {
+            ledcWrite(IN_1_D, -wheel_right.speed);
+            ledcWrite(IN_2_D, 0);
+        }
+
+    tracing();
+
+    return angle_error;
+}*/
 
 void update_coeff() {
     kp_dist = server.arg("coeff_kp_dist").toFloat();
@@ -666,8 +784,8 @@ void get_angle() {
         // Normalisation entre 0 et 360
         heading = fmod(heading + 360.0, 360.0);
 
-        Serial.print("Heading: ");
+        /*Serial.print("Heading: ");
         Serial.print(heading);
-        Serial.println("°");
+        Serial.println("°");*/
     }
 }
