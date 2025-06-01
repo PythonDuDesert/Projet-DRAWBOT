@@ -42,7 +42,7 @@
 #define CTRL_REG3 0x22
 #define OUT_X_L   0x28
 
-#define conversion_number 35.5 // Nombre de ticks des encodeurs (35.5 ticks = 1cm)
+#define conversion_number 36 // Nombre de ticks des encodeurs (36 ticks = 1cm)
 
 
 class Wheel{
@@ -56,26 +56,22 @@ class Wheel{
 Wheel wheel_left;
 Wheel wheel_right;
 
-unsigned short int target_distance = 20;
-unsigned short int target_angle = 90;
+unsigned short int target_distance = 0;
+unsigned short int target_angle = 0;
 float last_angle_error = 0.0;
-
 float current_angle;
 
 // PID distance
-float kp_dist = 2, ki_dist = 0, kd_dist = 0.3;
+float kp_dist = 2, ki_dist = 0, kd_dist = 0.9;
 double P_dist = 0, I_dist = 0, D_dist = 0;
 
 // PID écart
 float kp_diff = 1.2, ki_diff = 0, kd_diff = 0.2;
 float P_diff = 0, I_diff = 0, D_diff = 0;
 
-// PID angle
-float kp_ang = 1, ki_ang = 0, kd_ang = 0.2;
-float P_ang = 0, I_ang = 0, D_ang = 0;
+bool in_sequence1 = false, in_sequence2 = false, in_sequence3 = false, in_bonus1 = false, in_bonus2 = false, in_bonus3 = false;
 
-bool in_sequence1 = false, in_sequence2 = false, in_sequence3 = false;
-
+// Compteur de ticks
 void IRAM_ATTR onTickGauche() {
     if (digitalRead(ENC_G_CH_A) == HIGH) {
         wheel_left.nbr_ticks++;
@@ -109,7 +105,7 @@ const char* password = "y4pw4r5lcwji97qrq5w4"; //mot de passe de ce partage ou d
 WebServer server(80);
 */
 
-void handleRoot() {
+void handleRoot() { //Interface web
     String html = R"rawliteral(
         <!DOCTYPE html>
         <head>
@@ -186,25 +182,6 @@ void handleRoot() {
                     margin: 0 auto;
                 }
 
-                /* Paramètres */
-                #parameters {
-                    margin: 1.5rem 0 2rem;
-                    display: flex;
-                }
-
-                #coeff {
-                    background-color: rgba(138, 138, 138, 0.3);
-                    border: solid 3px black;
-                    border-radius: 5px;
-                    padding: 10px;
-                    font-weight: bold;
-                }
-
-                input {
-                    width : 3rem;
-                    margin-right: 0.75rem;
-                }
-
                 /* Sequence controls */
                 #sequence-buttons {
                     display: grid;
@@ -272,20 +249,6 @@ void handleRoot() {
                 function start_sequence_1() {
                     fetch("/start_sequence1");
                 }
-                function update_coeff() {
-                    let kp_dist = document.getElementById("coeff_kp_dist").value;
-                    let ki_dist = document.getElementById("coeff_ki_dist").value;
-                    let kd_dist = document.getElementById("coeff_kd_dist").value;
-                    fetch(`/update_coeff?coeff_kp_dist=${kp_dist}&coeff_ki_dist=${ki_dist}&coeff_kd_dist=${kd_dist}`);
-                    document.getElementById("reset_coeff").style.background = "lightgrey";
-                }
-                function reset_coeff() {
-                    let kp_dist = 2;
-                    let ki_dist = 0;
-                    let kd_dist = 0.3;
-                    fetch(`/update_coeff?coeff_kp_dist=${kp_dist}&coeff_ki_dist=${ki_dist}&coeff_kd_dist=${kd_dist}`);
-                    document.getElementById("reset_coeff").style.background = "darkgreen";
-                }
             </script>
         </head>
 
@@ -332,16 +295,6 @@ void handleRoot() {
                                 </button>
                                 <div class="empty-cell"></div>
                             </div>
-
-                            <div id="parameters">
-                                <div id="coeff">
-                                    <span>kp_dist: <input type="number" name="coeff_kp_dist" id="coeff_kp_dist" value="3" min="0" step="0.1"></span>
-                                    <span>ki_dist: <input type="number" name="coeff_ki_dist" id="coeff_ki_dist" value="0.1" min="0" step="0.1"></span>
-                                    <span>kd_dist: <input type="number" name="coeff_kd_dist" id="coeff_kd_dist" value="0.5" min="0" step="0.1"></span>
-                                    <button id="reset_coeff" onclick="reset_coeff()">RESET</button>
-                                    <button id="send_coeff" onclick="update_coeff()">SEND</button>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Sequence Controls -->
@@ -363,7 +316,7 @@ void handleRoot() {
                                 <button class="buttons">
                                     <span>Bonus 2</span>
                                 </button>
-                                <button class="buttons">
+                                <button class="buttons" style="cursor: not-allowed;">
                                     <span>Bonus 3</span>
                                 </button>
                             </div>
@@ -428,12 +381,12 @@ void setup() {
     server.begin();
     Serial.println("Serveur HTTP lancé.");
 
-    wheel_left.target_ticks = target_distance*conversion_number;
+    wheel_left.target_ticks = 0;
     wheel_left.nbr_ticks = 0;
     wheel_left.error = 0;
     wheel_left.last_error = 0;
     wheel_left.speed = 0;
-    wheel_right.target_ticks = target_distance*conversion_number;
+    wheel_right.target_ticks = 0;
     wheel_right.nbr_ticks = 0;
     wheel_right.error = 0;
     wheel_right.last_error = 0;
@@ -481,15 +434,14 @@ void loop() {
 
 
 void tracing() {
-    Serial.print(wheel_left.error);
-    Serial.print('\t');
-    Serial.print(wheel_right.error);
-    Serial.print('\t');
+    float distance = (float)((wheel_left.nbr_ticks + wheel_right.nbr_ticks) / 2) / (float)conversion_number;
+    Serial.print("Distance:\t");
+    Serial.print(distance);
+    Serial.print("\tSpeed_L:\t");
     Serial.print(wheel_left.speed);
-    Serial.print('\t');
+    Serial.print("\tSpeed_R:\t");
     Serial.println(wheel_right.speed);
 }
-
 
 void stop() {
     ledcWrite(IN_1_D, 0);
@@ -499,6 +451,9 @@ void stop() {
     in_sequence1 = false;
     in_sequence2 = false;
     in_sequence3 = false;
+    in_bonus1 = false;
+    in_bonus2 = false;
+    in_bonus3 = false;
 }
 
 void avancer() {
@@ -533,7 +488,6 @@ void reset() {
     stop();
     wheel_left.nbr_ticks = 0;
     wheel_right.nbr_ticks = 0;
-    in_sequence1 = false;
 }
 
 void start_sequence1() {
@@ -543,61 +497,61 @@ void start_sequence1() {
 } 
 
 void sequence1() {
-    //https://projecthub.arduino.cc/anova9347/line-follower-robot-with-pid-controller-01813f
+    pid_distance(20);
+    turn(90);
+    pid_distance(10);
+    turn(-90);
+    pid_distance(40);
 
-        float a = pid_distance1();
-        float b = pid_distance2();
+    stop();
+    Serial.println("Séqunce 1 terminée !");
+
+    tracing();
+}
+
+float pid_distance(int distance) {
+    //https://projecthub.arduino.cc/anova9347/line-follower-robot-with-pid-controller-01813f
+    wheel_left.target_ticks = distance*conversion_number;
+    wheel_right.target_ticks = distance*conversion_number;
+    wheel_left.error = wheel_left.target_ticks - wheel_left.nbr_ticks;
+    wheel_right.error = wheel_right.target_ticks - wheel_right.nbr_ticks;
+
+    while (abs(wheel_left.error) > 10 || abs(wheel_right.error) > 10 || wheel_left.speed != 0 || wheel_right.speed != 0) {
+        wheel_left.error = wheel_left.target_ticks - wheel_left.nbr_ticks;
+        wheel_right.error = wheel_right.target_ticks - wheel_right.nbr_ticks;
+        int avg_error = (wheel_left.error + wheel_right.error)/2;
+
+        P_dist = avg_error;
+        I_dist = I_dist + avg_error;
+        D_dist = avg_error - (wheel_left.last_error + wheel_right.last_error)/2;
+        wheel_left.last_error = wheel_left.error;
+        wheel_right.last_error = wheel_right.error;
+
+        float PID_dist_result = kp_dist*P_dist + ki_dist*I_dist + kd_dist*D_dist;
+        float PID_diff_result = pid_ecart();
         
-        wheel_left.speed = a - b;
-        wheel_right.speed = a + b;
+        wheel_left.speed = PID_dist_result - PID_diff_result;
+        wheel_right.speed = PID_dist_result + PID_diff_result;
         wheel_left.speed = constrain(wheel_left.speed, -180, 180); //Plafond
-        wheel_right.speed = constrain(wheel_right.speed, -180, 180);
-        if (abs(wheel_left.speed) < 100 && abs(wheel_left.speed) >= 40) { //Plancher
+        wheel_right.speed = constrain(wheel_right.speed, -180, 180); //Plafond
+        if (abs(wheel_left.speed) < 100 && abs(wheel_left.speed) >= 70) { //Plancher
             wheel_left.speed = copysign(100, wheel_left.speed);
         }
-        else if (abs(wheel_left.speed) < 40 && abs(wheel_left.speed) >= 10) {
+        else if (abs(wheel_left.speed) < 70 && abs(wheel_left.speed) >= 10) {
             wheel_left.speed = copysign(90, wheel_left.speed);
         }
         else if (abs(wheel_left.speed) < 10) {
             wheel_left.speed = 0;
         }
-        if (abs(wheel_right.speed) < 100 && abs(wheel_right.speed) >= 40) { //Plancher
+        if (abs(wheel_right.speed) < 100 && abs(wheel_right.speed) >= 70) { //Plancher
             wheel_right.speed = copysign(100, wheel_right.speed);
         }
-        else if (abs(wheel_right.speed) < 40 && abs(wheel_right.speed) >= 10) {
+        else if (abs(wheel_right.speed) < 70 && abs(wheel_right.speed) >= 10) {
             wheel_right.speed = copysign(90, wheel_right.speed);
         }
         else if (abs(wheel_right.speed) < 10) {
             wheel_right.speed = 0;
         }
-        
-        if (wheel_left.error < 10 && wheel_right.error < 10 && wheel_left.speed == 0 && wheel_right.speed == 0) {
-            stop();
-            in_sequence1 = false;
-            wheel_left.speed = 0;
-            wheel_right.speed = 0;     
-            turn_90();
-            Serial.println("Séquence 1 terminée!");
-        }
-
-        Serial.print("Error left : ");
-        Serial.println(wheel_left.error);
-        Serial.print("Error right : ");
-        Serial.println(wheel_right.error);
-
-        Serial.print("Ticks gauche : ");
-        Serial.println(wheel_left.nbr_ticks);
-        Serial.print("Ticks droite : ");
-        Serial.println(wheel_right.nbr_ticks);
-
-        float distance = (float)((wheel_left.nbr_ticks+wheel_right.nbr_ticks)/2)/(float)conversion_number;
-        Serial.print("Distance : ");
-        Serial.println(distance);
-
-        Serial.print("Speed left : ");
-        Serial.println(wheel_left.speed);
-        Serial.print("Speed right : ");
-        Serial.println(wheel_right.speed);
 
         // Commande moteurs gauche
         if (wheel_left.speed > 0) {
@@ -616,42 +570,29 @@ void sequence1() {
             ledcWrite(IN_2_D, 0);
         }
 
-        tracing();
+        float distance = (float)((wheel_left.nbr_ticks+wheel_right.nbr_ticks)/2)/(float)conversion_number;
+        Serial.print("Distance : ");
+        Serial.println(distance);
+    }
+
+    bool distance_terminee = true;
+    return distance_terminee;
 }
 
-float pid_distance1() {
+float pid_ecart() {
+    int error_diff = wheel_left.nbr_ticks - wheel_right.nbr_ticks;
+    P_diff = error_diff;
+    I_diff += error_diff;
+    D_diff = error_diff - (wheel_left.last_error + wheel_right.last_error)/2;
+    wheel_right.last_error = error_diff;
 
-        wheel_left.error = wheel_left.target_ticks - wheel_left.nbr_ticks;
-        wheel_right.error = wheel_right.target_ticks - wheel_right.nbr_ticks;
-        int avg_error = (wheel_left.error + wheel_right.error)/2;
+    float PID_diff_result = kp_diff*P_diff + ki_diff*I_diff + kd_diff*D_diff;
 
-        P_dist = avg_error;
-        I_dist = I_dist + avg_error;
-        D_dist = avg_error - (wheel_left.last_error + wheel_right.last_error)/2;
-        wheel_left.last_error = wheel_left.error;
-        wheel_right.last_error = wheel_right.error;
-
-        float PID_dist_result = kp_dist*P_dist + ki_dist*I_dist + kd_dist*D_dist;
-
-        return PID_dist_result;
+    return PID_diff_result;
 }
 
-float pid_distance2() {
-    
-        int error_diff = wheel_left.nbr_ticks - wheel_right.nbr_ticks;
-        P_diff = error_diff;
-        I_diff += error_diff;
-        D_diff = error_diff - (wheel_left.last_error + wheel_right.last_error)/2;
-        wheel_right.last_error = error_diff;
-        
-        float PID_diff_result = kp_diff*P_diff + ki_diff*I_diff + kd_diff*D_diff;
-
-        return PID_diff_result;
-}
-
-float turn_90(){
-
-    const float amplitude = 160; // valeur maximale du speed en module
+void turn(int angle) {
+    const float amplitude = 180; // valeur maximale du speed en module
     const float step = 0.1f;     // incrément de t à chaque itération
     const float delay_us = 10000; // 10 ms
 
@@ -661,7 +602,7 @@ float turn_90(){
         wheel_right.speed = amplitude;
         wheel_left.speed = amplitude * sin_value;
         
-
+        // Commande moteurs gauche
         if (wheel_left.speed > 0) {
             ledcWrite(IN_1_G, wheel_left.speed);
             ledcWrite(IN_2_G, 0);
@@ -680,75 +621,10 @@ float turn_90(){
 
         usleep(delay_us); // pause pour que l'évolution soit progressive
     }
-
 }
 
-/*
-float pid_angle1(float current_angle, float target_angle, float last_angle_error) {
 
-    float current_angle = 0;  // À remplacer par ta vraie fonction
-        float error = pid_angle1(current_angle, target_angle, last_angle_error);
-
-    // Peut-être une condition d'arrêt ?
-        if (abs(error) < 10.0) {
-            ledcWrite(IN_1_D, 0);
-            ledcWrite(IN_2_D, 0);
-            ledcWrite(IN_1_G, 0);
-            ledcWrite(IN_2_G, 0);
-        }
-
-    float angle_error = target_angle - current_angle;
-
-    // PID pour l’angle
-    P_ang = angle_error;
-    I_ang += angle_error;
-    D_ang = angle_error - last_angle_error;
-    last_angle_error = angle_error;
-
-    float PID_output = kp_ang * P_ang + ki_ang * I_ang + kd_ang * D_ang;
-
-    // Appliquer sur les vitesses des roues
-    wheel_right.speed = 180;  // constante
-    wheel_left.speed = -180 + PID_output;
-
-    // Limiter la vitesse gauche si besoin
-    if (wheel_left.speed > 180) {
-        wheel_left.speed = 180;
-    }
-    if (wheel_left.speed < -180) {
-        wheel_left.speed = -180;
-    }
-
-    // Commande moteurs gauche
-        if (wheel_left.speed > 0) {
-            ledcWrite(IN_1_G, wheel_left.speed);
-            ledcWrite(IN_2_G, 0);
-        } else {
-            ledcWrite(IN_1_G, 0);
-            ledcWrite(IN_2_G, -wheel_left.speed);
-        }
-        // Commande moteurs droit
-        if (wheel_right.speed > 0) {
-            ledcWrite(IN_1_D, 0);
-            ledcWrite(IN_2_D, wheel_right.speed);
-        } else {
-            ledcWrite(IN_1_D, -wheel_right.speed);
-            ledcWrite(IN_2_D, 0);
-        }
-
-    tracing();
-
-    return angle_error;
-}*/
-
-void update_coeff() {
-    kp_dist = server.arg("coeff_kp_dist").toFloat();
-    ki_dist = server.arg("coeff_ki_dist").toFloat();
-    kd_dist = server.arg("coeff_kd_dist").toFloat();
-    server.send(200, "text/plain", "Coefficients PID mis à jour");
-}
-
-void get_angle() {
+void get_angle() { //Aide IA pour le magnétomètre
     int16_t mx, my, mz;
 
     // Lire 6 octets à partir de OUT_X_L
