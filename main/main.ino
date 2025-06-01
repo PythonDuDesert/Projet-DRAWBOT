@@ -249,6 +249,12 @@ void handleRoot() { //Interface web
                 function start_sequence_1() {
                     fetch("/start_sequence1");
                 }
+                function start_sequence_2() {
+                    fetch("/start_sequence2");
+                }
+                function start_sequence_3() {
+                    fetch("/start_sequence3");
+                }
             </script>
         </head>
 
@@ -270,27 +276,27 @@ void handleRoot() { //Interface web
 
                                 <!-- Top row -->
                                 <div class="empty-cell"></div>
-                                <button class="buttons" onmousedown="avancer()" onmouseup="stop()">
+                                <button class="buttons" onclick="avancer()">
                                     <span>Avancer</span>
                                 </button>
                                 <div class="empty-cell"></div>
 
                                 <!-- Middle row -->
-                                <button class="buttons" onmousedown="gauche()" onmouseup="stop()">
+                                <button class="buttons" onclick="gauche()">
                                     <span>Gauche</span>
                                 </button>
                                 <button class="buttons" id="button_stop" onclick="stop()">
                                     <span>STOP</span>
                                 </button>
-                                <button class="buttons" onmousedown="droite()" onmouseup="stop()">
+                                <button class="buttons" onclick="droite()">
                                     <span>Droite</span>
                                 </button>
 
                                 <!-- Bottom row -->
-                                <button class="buttons" id="button_reset" onclick="reset()">
+                                <button class="buttons" id="button_reset">
                                     <span>Reset</span>
                                 </button>
-                                <button class="buttons" onmousedown="reculer()" onmouseup="stop()">
+                                <button class="buttons" onclick="reculer()">
                                     <span>Reculer</span>
                                 </button>
                                 <div class="empty-cell"></div>
@@ -304,16 +310,16 @@ void handleRoot() { //Interface web
                                 <button class="buttons" onclick="start_sequence_1()">
                                     <span>Séquence 1</span>
                                 </button>
-                                <button class="buttons">
+                                <button class="buttons" onclick="start_sequence_2()">
                                     <span>Séquence 2</span>
                                 </button>
-                                <button class="buttons">
+                                <button class="buttons" onclick="start_sequence_3()">
                                     <span>Séquence 3</span>
                                 </button>
                                 <button class="buttons">
                                     <span>Bonus 1</span>
                                 </button>
-                                <button class="buttons">
+                                <button class="buttons" style="cursor: not-allowed;">
                                     <span>Bonus 2</span>
                                 </button>
                                 <button class="buttons" style="cursor: not-allowed;">
@@ -328,6 +334,26 @@ void handleRoot() { //Interface web
         </html>)rawliteral";
     server.send(200, "text/html", html);
 }
+
+
+void avancer();
+void reculer();
+void gauche();
+void droite();
+void stop();
+void reset();
+void start_sequence1();
+//void start_sequence2();
+void start_sequence3();
+void sequence1();
+//void sequence2();
+void sequence3();
+
+float pid_distance(int);
+void turn(int angle);
+void turn2(int angle);
+short int get_angle();
+float pid_ecart();
 
 
 // setup
@@ -378,6 +404,8 @@ void setup() {
     server.on("/stop", stop);
     server.on("/reset", reset);
     server.on("/start_sequence1", start_sequence1);
+    //server.on("/start_sequence2", start_sequence2);
+    server.on("/start_sequence3", start_sequence3);
     server.begin();
     Serial.println("Serveur HTTP lancé.");
 
@@ -425,11 +453,20 @@ void loop() {
     }
 
     if (in_sequence1) {
+        digitalWrite(LEDU1, HIGH);
         sequence1();
         delay(50);
     }
-
-    get_angle();
+    // else if (in_sequence2) {
+        //digitalWrite(LEDU1, HIGH);
+    //     sequence2();
+    //     delay(50);
+    // }
+    else if (in_sequence3) {
+        digitalWrite(LEDU1, HIGH);
+        sequence3();
+        delay(50);
+    }
 }
 
 
@@ -454,6 +491,7 @@ void stop() {
     in_bonus1 = false;
     in_bonus2 = false;
     in_bonus3 = false;
+    digitalWrite(LEDU1, LOW);
 }
 
 void avancer() {
@@ -472,15 +510,15 @@ void reculer() {
 
 void gauche() {
     ledcWrite(IN_1_D, 0);
-    ledcWrite(IN_2_D, 160);
+    ledcWrite(IN_2_D, 200);
     ledcWrite(IN_1_G, 0);
-    ledcWrite(IN_2_G, 160);
+    ledcWrite(IN_2_G, 200);
 }
 
 void droite() {
-    ledcWrite(IN_1_D, 160);
+    ledcWrite(IN_1_D, 200);
     ledcWrite(IN_2_D, 0);
-    ledcWrite(IN_1_G, 160);
+    ledcWrite(IN_1_G, 200);
     ledcWrite(IN_2_G, 0);
 }
 
@@ -494,19 +532,88 @@ void start_sequence1() {
     reset();
     in_sequence1 = true;
     server.send(200, "text/plain", "Sequence 1 started");
-} 
+}
+
+void start_sequence2() {
+    reset();
+    in_sequence2 = true;
+    server.send(200, "text/plain", "Sequence 2 started");
+}
+
+void start_sequence3() {
+    reset();
+    in_sequence3 = true;
+    server.send(200, "text/plain", "Sequence 3 started");
+}
 
 void sequence1() {
-    pid_distance(20);
-    turn(90);
     pid_distance(10);
-    turn(-90);
-    pid_distance(40);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+    turn(90);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+    turn2(30);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+    pid_distance(10);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
 
     stop();
-    Serial.println("Séqunce 1 terminée !");
-
+    Serial.println("Séqeunce 1 terminée !");
     tracing();
+}
+
+void sequence3() {
+    short int angle = get_angle();
+    if (angle > 0 && angle < 180) {
+        while (angle > 5) {
+            angle = get_angle();
+            gauche();
+        }
+    }
+    else if (angle > 180 && angle < 360) {
+        while (angle < 355) {
+            angle = get_angle();
+            droite();
+        }
+    }
+    stop();
+    delay(500);
+
+    avancer();
+    delay(300);
+    ledcWrite(IN_1_D, 0); // droite
+    ledcWrite(IN_2_D, 0);
+    ledcWrite(IN_1_G, 255);
+    ledcWrite(IN_2_G, 0);
+    delay(100);
+    stop();
+    delay(500);
+    ledcWrite(IN_1_D, 0); // gauche
+    ledcWrite(IN_2_D, 255);
+    ledcWrite(IN_1_G, 0);
+    ledcWrite(IN_2_G, 0);
+    delay(100);
+    stop();
+    delay(500);
+    ledcWrite(IN_1_D, 0); // gauche
+    ledcWrite(IN_2_D, 0);
+    ledcWrite(IN_1_G, 0);
+    ledcWrite(IN_2_G, 255);
+    delay(100);
+    stop();
+    delay(500);
+    ledcWrite(IN_1_D, 255); // droite
+    ledcWrite(IN_2_D, 0);
+    ledcWrite(IN_1_G, 0);
+    ledcWrite(IN_2_G, 0);
+    delay(150);
+    stop();
+    delay(500);
+    stop();
+    Serial.println("Séquence 3 terminée!");
 }
 
 float pid_distance(int distance) {
@@ -593,7 +700,7 @@ float pid_ecart() {
 
 void turn(int angle) {
     const float amplitude = 180; // valeur maximale du speed en module
-    const float step = 0.1f;     // incrément de t à chaque itération
+    const float step = 0.075f;     // pour incrémenter de t à chaque itération
     const float delay_us = 10000; // 10 ms
 
     // t va de -π/2 à π/2, ce qui fait passer sin(t) de -1 à 1
@@ -601,7 +708,7 @@ void turn(int angle) {
         float sin_value = sin(t); // varie de -1 à 1
         wheel_right.speed = amplitude;
         wheel_left.speed = amplitude * sin_value;
-        
+
         // Commande moteurs gauche
         if (wheel_left.speed > 0) {
             ledcWrite(IN_1_G, wheel_left.speed);
@@ -619,12 +726,62 @@ void turn(int angle) {
             ledcWrite(IN_2_D, 0);
         }
 
+        if (wheel_left.speed > 152 && wheel_right.speed > 152) {
+            ledcWrite(IN_1_D, 0);
+            ledcWrite(IN_2_D, 0);
+            ledcWrite(IN_1_G, 0);
+            ledcWrite(IN_2_G, 0);
+        }
+
         usleep(delay_us); // pause pour que l'évolution soit progressive
     }
+    stop();
+}
+
+void turn2(int angle) {
+    const float amplitude = 180; // valeur maximale du speed en module
+    const float step = 0.075f;    // incrément plus petit car plage réduite
+    const float delay_us = 10000; // 10 ms
+    const float t_min = -M_PI / 12; // -20°
+    const float t_max = M_PI / 12;  // +20°
+
+    for (float t = t_min; t <= t_max; t += step) {
+        float sin_value = sin(t); // varie maintenant de ~-0.342 à ~+0.342
+        wheel_left.speed = amplitude;
+        wheel_right.speed = amplitude * sin_value;
+
+        // Commande moteur gauche
+        if (wheel_left.speed > 0) {
+            ledcWrite(IN_1_G, wheel_left.speed);
+            ledcWrite(IN_2_G, 0);
+        } else {
+            ledcWrite(IN_1_G, 0);
+            ledcWrite(IN_2_G, -wheel_left.speed);
+        }
+
+        // Commande moteur droit
+        if (wheel_right.speed > 0) {
+            ledcWrite(IN_1_D, 0);
+            ledcWrite(IN_2_D, wheel_right.speed);
+        } else {
+            ledcWrite(IN_1_D, -wheel_right.speed);
+            ledcWrite(IN_2_D, 0);
+        }
+
+        if (wheel_left.speed > 152 && wheel_right.speed > 152) {
+            ledcWrite(IN_1_D, 0);
+            ledcWrite(IN_2_D, 0);
+            ledcWrite(IN_1_G, 0);
+            ledcWrite(IN_2_G, 0);
+        }
+
+        usleep(delay_us);
+    }
+    stop();
 }
 
 
-void get_angle() { //Aide IA pour le magnétomètre
+short int get_angle() { //Aide IA pour le magnétomètre
     int16_t mx, my, mz;
 
     // Lire 6 octets à partir de OUT_X_L
@@ -654,14 +811,14 @@ void get_angle() { //Aide IA pour le magnétomètre
         float my_corr = my - my_offset;
 
         // Calcul du cap
-        float heading = atan2(my_corr, mx_corr) * 180.0 / PI;
+        short int heading = atan2(my_corr, mx_corr) * 180.0 / PI;
         heading = 360.0 - heading;
 
         // Normalisation entre 0 et 360
         heading = fmod(heading + 360.0, 360.0);
-
-        /*Serial.print("Heading: ");
+        Serial.print("Heading: ");
         Serial.print(heading);
-        Serial.println("°");*/
+        Serial.println("°");
+        return heading;
     }
 }
