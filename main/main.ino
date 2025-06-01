@@ -255,6 +255,9 @@ void handleRoot() { //Interface web
                 function start_sequence_3() {
                     fetch("/start_sequence3");
                 }
+                function start_bonus_1() {
+                    fetch("/start_bonus1");
+                }
             </script>
         </head>
 
@@ -316,7 +319,7 @@ void handleRoot() { //Interface web
                                 <button class="buttons" onclick="start_sequence_3()">
                                     <span>Séquence 3</span>
                                 </button>
-                                <button class="buttons">
+                                <button class="buttons"  onclick="start_bonus_1()">
                                     <span>Bonus 1</span>
                                 </button>
                                 <button class="buttons" style="cursor: not-allowed;">
@@ -348,6 +351,8 @@ void start_sequence3();
 void sequence1();
 //void sequence2();
 void sequence3();
+void start_bonus1();
+void bonus1();
 
 float pid_distance(int);
 void turn(int angle);
@@ -406,6 +411,7 @@ void setup() {
     server.on("/start_sequence1", start_sequence1);
     //server.on("/start_sequence2", start_sequence2);
     server.on("/start_sequence3", start_sequence3);
+    server.on("/start_bonus1", start_bonus1);
     server.begin();
     Serial.println("Serveur HTTP lancé.");
 
@@ -465,6 +471,11 @@ void loop() {
     else if (in_sequence3) {
         digitalWrite(LEDU1, HIGH);
         sequence3();
+        delay(50);
+    }
+    else if (in_bonus1) {
+        digitalWrite(LEDU1, HIGH);
+        bonus1();
         delay(50);
     }
 }
@@ -546,8 +557,14 @@ void start_sequence3() {
     server.send(200, "text/plain", "Sequence 3 started");
 }
 
+void start_bonus1() {
+    reset();
+    in_bonus1 = true;
+    server.send(200, "text/plain", "Bonus 1 started");
+}
+
 void sequence1() {
-    pid_distance(10);
+    pid_distance(20);
     wheel_left.nbr_ticks = 0;
     wheel_right.nbr_ticks = 0;
     turn(90);
@@ -556,12 +573,46 @@ void sequence1() {
     turn2(30);
     wheel_left.nbr_ticks = 0;
     wheel_right.nbr_ticks = 0;
-    pid_distance(10);
+    pid_distance(40);
     wheel_left.nbr_ticks = 0;
     wheel_right.nbr_ticks = 0;
 
     stop();
-    Serial.println("Séqeunce 1 terminée !");
+    Serial.println("Séquence 1 terminée !");
+    tracing();
+}
+
+void bonus1() {
+    pid_distance(30);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+    turn(90);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+    turn2(30);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+    pid_distance(25);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+
+    pid_distance(20);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+    turn(90);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+    turn2(30);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+    pid_distance(15);
+    wheel_left.nbr_ticks = 0;
+    wheel_right.nbr_ticks = 0;
+
+    pid_distance(10);
+
+    stop();
+    Serial.println("Bonus 1 terminée !");
     tracing();
 }
 
@@ -588,17 +639,17 @@ void sequence3() {
     ledcWrite(IN_2_D, 0);
     ledcWrite(IN_1_G, 255);
     ledcWrite(IN_2_G, 0);
-    delay(100);
+    delay(50);
     stop();
     delay(500);
     ledcWrite(IN_1_D, 0); // gauche
     ledcWrite(IN_2_D, 255);
-    ledcWrite(IN_1_G, 0);
+    ledcWrite(IN_1_G, 160);
     ledcWrite(IN_2_G, 0);
     delay(100);
     stop();
     delay(500);
-    ledcWrite(IN_1_D, 0); // gauche
+    ledcWrite(IN_1_D, 160); // gauche
     ledcWrite(IN_2_D, 0);
     ledcWrite(IN_1_G, 0);
     ledcWrite(IN_2_G, 255);
@@ -609,7 +660,7 @@ void sequence3() {
     ledcWrite(IN_2_D, 0);
     ledcWrite(IN_1_G, 0);
     ledcWrite(IN_2_G, 0);
-    delay(150);
+    delay(70);
     stop();
     delay(500);
     stop();
@@ -739,16 +790,21 @@ void turn(int angle) {
 }
 
 void turn2(int angle) {
-    const float amplitude = 180; // valeur maximale du speed en module
-    const float step = 0.075f;    // incrément plus petit car plage réduite
+    const float amplitude = 180;
+    const float step = 0.075f;
     const float delay_us = 10000; // 10 ms
-    const float t_min = -M_PI / 12; // -20°
-    const float t_max = M_PI / 12;  // +20°
+
+    const float t_min = -M_PI / 2;
+    const float t_max = M_PI / 2;
 
     for (float t = t_min; t <= t_max; t += step) {
-        float sin_value = sin(t); // varie maintenant de ~-0.342 à ~+0.342
+        // sin(t) varie de -1 à 1, on le mappe de 0 à 1
+        float progress = (sin(t) + 1.0) / 2.0;
+        float eased = pow(progress, 3.0);
+
+        // Accélération progressive des deux roues vers 180
         wheel_left.speed = amplitude;
-        wheel_right.speed = amplitude * sin_value;
+        wheel_right.speed = amplitude * eased;
 
         // Commande moteur gauche
         if (wheel_left.speed > 0) {
@@ -758,7 +814,6 @@ void turn2(int angle) {
             ledcWrite(IN_1_G, 0);
             ledcWrite(IN_2_G, -wheel_left.speed);
         }
-
         // Commande moteur droit
         if (wheel_right.speed > 0) {
             ledcWrite(IN_1_D, 0);
@@ -767,18 +822,12 @@ void turn2(int angle) {
             ledcWrite(IN_1_D, -wheel_right.speed);
             ledcWrite(IN_2_D, 0);
         }
-
-        if (wheel_left.speed > 152 && wheel_right.speed > 152) {
-            ledcWrite(IN_1_D, 0);
-            ledcWrite(IN_2_D, 0);
-            ledcWrite(IN_1_G, 0);
-            ledcWrite(IN_2_G, 0);
-        }
-
         usleep(delay_us);
     }
+
     stop();
 }
+
 
 
 short int get_angle() { //Aide IA pour le magnétomètre
